@@ -2,3 +2,4 @@
 *.so
 extconf.h
 Makefile
+mkmf.log

@@ -1,28 +1,4 @@
-require 'json'
 require 'shellwords'
-
-require 'rugged'
-require 'set'
-
-repo = Rugged::Repository.new '.'
-lines_to_run = Set.new
-
-repo.index.diff.each_patch { |patch|
-  file = patch.delta.old_file[:path]
-
-  patch.each_hunk { |hunk|
-    hunk.each_line { |line|
-      case line.line_origin
-      when :addition
-        lines_to_run << [file, line.new_lineno]
-      when :deletion
-        lines_to_run << [file, line.old_lineno]
-      when :context
-        # do nothing
-      end
-    }
-  }
-}
 
 def diff(before, after)
   after.each_with_object({}) do |(file_name,line_cov), res|

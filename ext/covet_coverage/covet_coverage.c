@@ -13,23 +13,24 @@
 extern VALUE rb_get_coverages(void);
 extern void rb_set_coverages(VALUE);
 extern void rb_reset_coverages(void);
+//extern VALUE rb_obj_hide(VALUE); // FIXME: ruby >= 2.1
 
 static VALUE rb_coverages = Qundef;
 
 
 /*
  * call-seq:
- *    Coverage.start  => nil
- *
- * Enables coverage measurement.
+ *    CovetCoverage.start  => nil
+ * * Enables coverage measurement.
  */
 static VALUE
-rb_coverage_start(VALUE klass)
+rb_coverage_start(void)
 {
     if (!RTEST(rb_get_coverages())) {
         if (rb_coverages == Qundef) {
             rb_coverages = rb_hash_new();
-            rb_obj_hide(rb_coverages);
+            RBASIC(rb_coverages)->klass = 0; // FIXME: ruby < 2.1
+            //rb_obj_hide(rb_coverages); FIXME: ruby >= 2.1
         }
         rb_set_coverages(rb_coverages);
     }
@@ -58,38 +59,73 @@ coverage_peek_result_i(st_data_t key, st_data_t val, st_data_t h)
 
 /*
  *  call-seq:
- *     Coverage.peek_result  => hash
+ *     CovetCoverage.peek_result  => hash
  *
  * Returns a hash that contains filename as key and coverage array as value.
  */
 static VALUE
-rb_coverage_peek_result(VALUE klass)
+rb_coverage_peek_result(void)
 {
     VALUE coverages = rb_get_coverages();
     VALUE ncoverages = rb_hash_new();
     if (!RTEST(coverages)) {
-        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled (covet)");
     }
     st_foreach(RHASH_TBL(coverages), coverage_peek_result_i, ncoverages);
     rb_hash_freeze(ncoverages);
     return ncoverages;
 }
 
+static int
+coverage_result_i(st_data_t key, st_data_t val, st_data_t h)
+{
+    VALUE path = (VALUE)key;
+    VALUE coverage = (VALUE)val;
+    VALUE coverages = (VALUE)h;
+    coverage = rb_ary_dup(coverage);
+    rb_ary_clear((VALUE)val);
+    rb_ary_freeze(coverage);
+    rb_hash_aset(coverages, path, coverage);
+    return ST_CONTINUE;
+}
+
 /*
  *  call-seq:
- *     Coverage.result  => hash
+ *     CovetCoverage.result  => hash
  *
  * Returns a hash that contains filename as key and coverage array as value
  * and disables coverage measurement.
  */
 static VALUE
-rb_coverage_result(VALUE klass)
+rb_coverage_result(void)
 {
-    VALUE ncoverages = rb_coverage_peek_result(klass);
     VALUE coverages = rb_get_coverages();
-    st_foreach(RHASH_TBL(coverages), coverage_clear_result_i, ncoverages);
+    VALUE ncoverages = rb_hash_new();
+    if (!RTEST(coverages)) {
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+    }
+    st_foreach(RHASH_TBL(coverages), coverage_result_i, ncoverages);
+    rb_hash_freeze(ncoverages);
     rb_reset_coverages();
     return ncoverages;
+}
+
+static VALUE
+rb_coverage_stop(void) {
+    if (!RTEST(rb_get_coverages())) {
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled (covet)");
+    }
+    rb_reset_coverages();
+    return Qnil;
+}
+
+static VALUE
+rb_coverage_enabled_p(void) {
+    if (RTEST(rb_get_coverages())) {
+        return Qtrue;
+    } else {
+        return Qfalse;
+    }
 }
 
 void
@@ -97,7 +133,9 @@ Init_covet_coverage(void)
 {
     VALUE rb_mCoverage = rb_define_module("CovetCoverage");
     rb_define_module_function(rb_mCoverage, "start", rb_coverage_start, 0);
+    rb_define_module_function(rb_mCoverage, "stop",  rb_coverage_stop, 0);
     rb_define_module_function(rb_mCoverage, "result", rb_coverage_result, 0);
     rb_define_module_function(rb_mCoverage, "peek_result", rb_coverage_peek_result, 0);
+    rb_define_module_function(rb_mCoverage, "enabled?", rb_coverage_enabled_p, 0);
     rb_gc_register_address(&rb_coverages);
 }
