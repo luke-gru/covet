@@ -4,7 +4,8 @@ module Covet
       require 'rugged'
       # @return Set
       def self.changes_since(since = :last_commit)
-        repo = Rugged::Repository.new '.'
+        repo = nil
+        repo = Rugged::Repository.new(Dir.pwd) # FIXME: should take project root as option
         lines_to_run = Set.new
         diff = case since
         when :last_commit
@@ -23,7 +24,7 @@ module Covet
               when :deletion
                 lines_to_run << [file, line.old_lineno]
               when :context
-                # Do nothing. FIXME: should we do something?
+                lines_to_run << [file, line.new_lineno]
               end
             }
           }

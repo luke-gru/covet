@@ -3,6 +3,8 @@ require_relative 'fakelib'
 gem 'minitest'
 require 'minitest/autorun'
 
+Covet.register_coverage_collection!
+
 class CovetTest < MiniTest::Test
 
   def diff_coverage_for(&block)
