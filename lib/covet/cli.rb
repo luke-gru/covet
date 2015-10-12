@@ -85,9 +85,9 @@ module Covet
         to_run = []
         line_changes.each do |(file, line)|
           if file.start_with?(*Covet.test_directories)
-            if file.start_with?("test#{File::PATH_SEPARATOR}") && file.end_with?('_test.rb')
+            if file.start_with?("test#{File::SEPARATOR}") && file.end_with?('_test.rb')
               to_run << [file, file] unless to_run.include?([file, file])
-            elsif file.start_with?("spec#{File::PATH_SEPARATOR}") && file.end_with?('_spec.rb')
+            elsif file.start_with?("spec#{File::SEPARATOR}") && file.end_with?('_spec.rb')
               to_run << [file, file] unless to_run.include?([file, file])
             end
             next
