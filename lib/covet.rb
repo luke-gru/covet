@@ -2,12 +2,16 @@ require 'json'
 require 'set'
 
 require_relative 'covet/version'
-begin
-  require_relative 'covet_coverage.so'
-rescue Exception # re-raised
-  $stderr.puts "Error loading 'covet' C extension.\n" \
-    "Please report this bug along with a backtrace. Thanks :)"
-  raise
+if defined?(Coverage) && Coverage.respond_to?(:peek_result)
+  CovetCoverage = Coverage
+else
+  begin
+    require_relative 'covet_coverage.so'
+  rescue Exception # re-raised
+    $stderr.puts "Error loading 'covet' C extension.\n" \
+      "Please report this bug along with a backtrace. Thanks :)"
+    raise
+  end
 end
 require_relative 'covet/collection_filter'
 require_relative 'covet/line_changes_vcs'
@@ -59,7 +63,7 @@ module Covet
   def self.register_coverage_collection!
     # stdlib Coverage can't run at the same time as CovetCoverage or
     # bad things will happen
-    if defined?(Coverage)
+    if defined?(Coverage) && !Coverage.respond_to?(:peek_result)
       Coverage.stop rescue nil
     end
     CovetCoverage.start # needs to be called before any application code gets required
