@@ -2,7 +2,13 @@ require 'json'
 require 'set'
 
 require_relative 'covet/version'
-require_relative 'covet_coverage.so'
+begin
+  require_relative 'covet_coverage.so'
+rescue Exception # re-raised
+  $stderr.puts "Error loading 'covet' C extension.\n" \
+    "Please report this bug along with a backtrace. Thanks :)"
+  raise
+end
 require_relative 'covet/collection_filter'
 require_relative 'covet/line_changes_vcs'
 require_relative 'covet/cli'

@@ -6,7 +6,7 @@ require 'minitest/autorun'
 Minitest.autorun
 
 CovetCoverage.start
-#Covet.register_coverage_collection!
+Covet.register_coverage_collection!
 
 class CovetTest < Minitest::Test
 

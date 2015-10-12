@@ -8,5 +8,9 @@ group :test, :development do
   gem 'rspec'
 end
 group :development do
-  gem 'debugger'
+  if RUBY_VERSION >= "2.0.0"
+    gem 'byebug'
+  else
+    gem 'debugger'
+  end
 end

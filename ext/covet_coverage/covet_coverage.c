@@ -13,7 +13,19 @@
 extern VALUE rb_get_coverages(void);
 extern void rb_set_coverages(VALUE);
 extern void rb_reset_coverages(void);
-//extern VALUE rb_obj_hide(VALUE); // FIXME: ruby >= 2.1
+
+#ifdef HAVE_RB_OBJ_HIDE
+extern VALUE rb_obj_hide(VALUE);
+static void hide_obj(VALUE val)
+{
+    rb_obj_hide(val);
+}
+#else
+static void hide_obj(VALUE val)
+{
+    RBASIC(val)->klass = 0;
+}
+#endif
 
 static VALUE rb_coverages = Qundef;
 
@@ -29,8 +41,7 @@ rb_coverage_start(void)
     if (!RTEST(rb_get_coverages())) {
         if (rb_coverages == Qundef) {
             rb_coverages = rb_hash_new();
-            RBASIC(rb_coverages)->klass = 0; // FIXME: ruby < 2.1
-            //rb_obj_hide(rb_coverages); FIXME: ruby >= 2.1
+            hide_obj(rb_coverages);
         }
         rb_set_coverages(rb_coverages);
     }
