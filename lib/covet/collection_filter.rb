@@ -67,7 +67,6 @@ module Covet
         end
       end
 
-
       keys_to_delete.each do |fname|
         raw_coverage_info.delete(fname)
       end

@@ -1,18 +1,13 @@
 require 'json'
 require 'set'
 
-# stdlib Coverage can't run at the same time as CovetCoverage or
-# bad things will happen
-if defined?(Coverage)
-  Coverage.stop rescue nil
-end
+require_relative 'covet/version'
 require_relative 'covet_coverage.so'
 require_relative 'covet/collection_filter'
 require_relative 'covet/line_changes_vcs'
 require_relative 'covet/cli'
 
 require 'debugger' if ENV['COVET_DEBUG']
-CovetCoverage.start # needs to be called before any application code gets required
 
 module Covet
   COLLECTION_LOGS = []
@@ -30,16 +25,48 @@ module Covet
     @test_runner = runner.intern
     require_relative "covet/test_runners/#{runner}"
   rescue LoadError
-    raise ArgumentError, "invalid test runner given: #{runner}. " \
-    "Expected 'rspec' or 'minitest'"
+    raise ArgumentError, "invalid test runner given: '#{runner}'. " \
+      "Expected 'rspec' or 'minitest'"
   end
   def self.test_runner; @test_runner; end
   self.test_runner = :minitest # default
 
+  def self.test_directories=(*dirs)
+    dirs = dirs.flatten
+    dirs.each do |dir|
+      unless Dir.exist?(dir)
+        raise Errno::ENOENT, %Q(invalid directory given: "#{dir}" ) +
+          %Q{("#{File.join(Dir.pwd, dir)}")}
+      end
+    end
+    @test_directories = dirs
+  end
+  def self.test_directories; @test_directories.dup; end
+  self.test_directories = []
+  if Dir.exist?('test')
+    self.test_directories = self.test_directories + ['test']
+  end
+  if Dir.exist?('spec')
+    self.test_directories = self.test_directories + ['spec']
+  end
+
   def self.register_coverage_collection!
+    # stdlib Coverage can't run at the same time as CovetCoverage or
+    # bad things will happen
+    if defined?(Coverage)
+      Coverage.stop rescue nil
+    end
+    CovetCoverage.start # needs to be called before any application code gets required
     Covet::TestRunners.const_get(
       @test_runner.to_s.capitalize
     ).hook_into_test_methods!
+  end
+
+  # @return String
+  def self.cmdline_for_run_list(run_list)
+    Covet::TestRunners.const_get(
+      @test_runner.to_s.capitalize
+    ).cmdline_for_run_list(run_list)
   end
 
   # Diff coverage information for before `block` ran, and after `block` ran

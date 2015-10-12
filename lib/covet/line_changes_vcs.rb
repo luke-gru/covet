@@ -7,7 +7,7 @@ module Covet
       require_relative "vcs/#{Covet.vcs}"
       Covet::VCS.const_get(Covet.vcs.capitalize).changes_since(since)
     rescue LoadError
-      raise ArgumentError, "#{self.class} can't get line changes using VCS: #{Covet.vcs} (not implemented)"
+      raise NotImplementedError, "#{self.class} can't get line changes using VCS: #{Covet.vcs} (not implemented)"
     end
   end
 end

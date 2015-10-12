@@ -1,13 +1,12 @@
 require_relative '../lib/covet'
-require_relative 'fakelib'
-gem 'minitest'
-require 'minitest'
-require 'minitest/autorun'
-Minitest.autorun
+require_relative '../test/fakelib'
+gem 'rspec'
+require 'rspec'
 
+Covet.test_runner = :rspec
 Covet.register_coverage_collection!
 
-class CovetTest < Minitest::Test
+module CovetTestHelpers
 
   def diff_coverage_for(&block)
     Covet.diff_coverage_for(&block)
@@ -68,4 +67,8 @@ class CovetTest < Minitest::Test
       end
     end
 
+end
+
+RSpec.configure do |c|
+  c.include CovetTestHelpers
 end

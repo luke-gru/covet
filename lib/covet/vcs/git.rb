@@ -2,16 +2,21 @@ module Covet
   module VCS
     module Git
       require 'rugged'
+
+      # Find lines that changed in the codebase
+      # @raise Rugged::Error, Rugged::InvalidError, TypeError
       # @return Set
-      def self.changes_since(since = :last_commit)
-        repo = nil
-        repo = Rugged::Repository.new(Dir.pwd) # FIXME: should take project root as option
+      def self.changes_since(revision = :last_commit)
+        repo = Rugged::Repository.new(Dir.pwd)
         lines_to_run = Set.new
-        diff = case since
-        when :last_commit
+        diff = case revision.to_s
+        when 'last_commit', 'HEAD'
           repo.index.diff
         else
-          raise NotImplementedError # FIXME: not yet implemented
+          # raises Rugged::Error or TypeError if `revision` is invalid Git object id
+          # (tag name or sha1, HEAD, etc)
+          commit = Rugged::Commit.new(repo, revision)
+          repo.index.diff(commit)
         end
         diff.each_patch { |patch|
           file = patch.delta.old_file[:path]
@@ -31,6 +36,7 @@ module Covet
         }
         lines_to_run
       end
+
     end
   end
 end
