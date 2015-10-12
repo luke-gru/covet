@@ -3,9 +3,10 @@ module Covet
     module Git
       require 'rugged'
 
-      # Find lines that changed in the codebase
+      # Find lines in git-indexed files that were changed (added/deleted/modified)
+      # in the codebase since `revision`.
       # @raise Rugged::Error, Rugged::InvalidError, TypeError
-      # @return Set
+      # @return Set<Array>
       def self.changes_since(revision = :last_commit)
         repo = Rugged::Repository.new(Dir.pwd)
         lines_to_run = Set.new
@@ -14,7 +15,7 @@ module Covet
           repo.index.diff
         else
           # raises Rugged::Error or TypeError if `revision` is invalid Git object id
-          # (tag name or sha1, HEAD, etc)
+          # (tag name or sha1, etc.)
           commit = Rugged::Commit.new(repo, revision)
           repo.index.diff(commit)
         end

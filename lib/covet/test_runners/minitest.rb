@@ -3,7 +3,12 @@ require 'rake/testtask'
 module Covet
   module TestRunners
     module Minitest
+      @hooked = false
       def self.hook_into_test_methods!
+        if @hooked
+          warn "Covet.register_coverage_collection! called multiple times"
+          return
+        end
         require 'minitest'
         ::Minitest::Runnable.class_eval do
 
@@ -25,6 +30,7 @@ module Covet
             end
           end
         end
+        @hooked = true
       end
 
       def self.cmdline_for_run_list(run_list)

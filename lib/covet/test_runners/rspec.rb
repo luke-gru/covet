@@ -1,10 +1,13 @@
-require 'rspec/core/rake_task'
-
 module Covet
   module TestRunners
     module Rspec
-      # TODO: test this
+      @hooked = false
       def self.hook_into_test_methods!
+        if @hooked
+          warn "Covet.register_coverage_collection! called multiple times"
+          return
+        end
+        require 'rspec'
         ::RSpec.configuration.after(:suite) do
           File.open(File.join(Dir.pwd, 'run_log.json'), 'w') do |f|
             f.write JSON.dump Covet::COLLECTION_LOGS
@@ -21,9 +24,11 @@ module Covet
           line = rspec_metadata[:line_number]
           Covet::COLLECTION_LOGS << ["#{file}:#{line}", before, after]
         end
+        @hooked = true
       end
 
       def self.cmdline_for_run_list(run_list)
+        require 'rspec/core/rake_task'
         files = run_list.map { |double| double[1] }
         files.uniq!
         file_list = files.join(' ')

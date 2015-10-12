@@ -22,14 +22,14 @@ module Covet
       end
 
       if options[:collect_cmdline] && !options[:collect_cmdline].empty?
-        Covet.register_coverage_collection!
         cmd = options[:collect_cmdline]
+        ENV['COVET_COLLECT'] = '1'
         puts "Collecting coverage information for each test method..."
         puts cmd
         pid = fork do
           # execute `cmd` with coverage information hooks on. `cmd` should
           # be a minitest or rspec commandline.
-          exec cmd
+          exec(cmd)
         end
         if pid
           exitstatus = Process.waitpid(pid)

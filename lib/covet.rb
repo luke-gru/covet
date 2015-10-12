@@ -123,3 +123,7 @@ module Covet
     end
   end
 end
+
+if ENV['COVET_COLLECT'] == '1'
+  Covet.register_coverage_collection!
+end
