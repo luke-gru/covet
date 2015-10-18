@@ -14,13 +14,35 @@ else
   end
 end
 require_relative 'covet/collection_filter'
+require_relative 'covet/collection_compressor'
 require_relative 'covet/line_changes_vcs'
+require_relative 'covet/log_collection'
 require_relative 'covet/cli'
 
-require 'debugger' if ENV['COVET_DEBUG']
+if ENV['COVET_DEBUG']
+  if RUBY_VERSION < '2.0'
+    gem 'debugger'
+    require 'debugger'
+  else
+    gem 'byebug'
+    require 'byebug'
+  end
+else
+  if !defined?(debugger)
+    def debugger; end
+  end
+end
 
 module Covet
-  COLLECTION_LOGS = []
+  BASE_COVERAGE = {}
+
+  def self.log_collection
+    @log_collection
+  end
+  @log_collection = LogCollection.new(
+    :filename => File.join(Dir.pwd, 'run_log.json'),
+    :bufsize => 50,
+  )
 
   def self.vcs=(vcs)
     @vcs = vcs.intern
@@ -64,6 +86,9 @@ module Covet
     # stdlib Coverage can't run at the same time as CovetCoverage or
     # bad things will happen
     if defined?(Coverage) && !Coverage.respond_to?(:peek_result)
+      # There's no way to tell if coverage is enabled or not, and
+      # if we try stopping the coverage and it's not enabled, it raises
+      # a RuntimeError.
       Coverage.stop rescue nil
     end
     CovetCoverage.start # needs to be called before any application code gets required
@@ -79,14 +104,25 @@ module Covet
     ).cmdline_for_run_list(run_list)
   end
 
-  # Diff coverage information for before `block` ran, and after `block` ran
+  # Returns coverage information for before `block` ran, and after `block` ran
   # for the codebase in its current state.
   # @return Array
-  def self.diff_coverage_for(&block)
+  def self.coverage_before_and_after # yields
     before = CovetCoverage.peek_result
-    block.call
+    yield if block_given?
     after = CovetCoverage.peek_result
-    [CollectionFilter.filter(before), CollectionFilter.filter(after)]
+    before = normalize_coverage_info(before)
+    if Covet::BASE_COVERAGE.any?
+      before = diff_coverages(Covet::BASE_COVERAGE, before)
+    end
+    after = normalize_coverage_info(after)
+    after = diff_coverages(before, after)
+    [before, after]
+  end
+
+  def self.normalize_coverage_info(coverage_info)
+    filtered = CollectionFilter.filter(coverage_info)
+    CollectionCompressor.compress(filtered)
   end
 
   # Generates a mapping of filenames to the lines and test methods that
@@ -95,17 +131,13 @@ module Covet
   #   { "/home/me/workspace/myproj/myproj.rb" => { 1 => ['test_method_that_caused_changed']} }
   def self.generate_run_list_for_method(before, after, options = {})
     cov_map = Hash.new { |h, file| h[file] = Hash.new { |i, line| i[line] = [] } }
-    delta = diff_coverages(before, after)
-    delta.each_pair do |file, lines|
+    after.each do |file, lines_hash|
       file_map = cov_map[file]
 
-      lines.each_with_index do |val, i|
-        # skip lines that weren't executed
-        next unless val && val > 0
-
+      lines_hash.each do |lineno, exec_times|
         # add the test name to the map. Multiple tests can execute the same
         # line, so we need to use an array.
-        file_map[i + 1] << (options[:method_name] || '???').to_s
+        file_map[lineno] << (options[:method_name] || '???').to_s
       end
     end
     cov_map
@@ -113,24 +145,32 @@ module Covet
 
   # @return Hash
   def self.diff_coverages(before, after)
-    after.each_with_object({}) do |(file_name, line_cov), res|
-      before_line_cov = before[file_name] || []
+    ret = after.each_with_object({}) do |(file_name, after_line_cov), res|
+      before_line_cov = before[file_name] || {}
+      next if before_line_cov == after_line_cov
 
-      # skip arrays that are exactly the same
-      next if before_line_cov == line_cov
+      cov = {}
 
-      # find the coverage difference
-      cov = line_cov.zip(before_line_cov).map do |line_after, line_before|
-        if line_after && line_before
-          line_after - line_before
+      after_line_cov.each do |lineno, exec_times|
+        # no change
+        if (before_exec_times = before_line_cov[lineno]) == exec_times
+          next
+        end
+
+        # execution of previous line number
+        if before_exec_times && exec_times
+          cov[lineno] = exec_times - before_exec_times
+        elsif exec_times
+          cov[lineno] = exec_times
         else
-          line_after
+          raise "shouldn't get here"
         end
       end
 
       # add the "diffed" coverage to the hash
       res[file_name] = cov
     end
+    ret
   end
 end
 

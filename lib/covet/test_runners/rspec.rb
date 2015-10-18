@@ -2,27 +2,60 @@ module Covet
   module TestRunners
     module Rspec
       @hooked = false
+      @run_num = 0
+      @skips = 0
+      @failures = 0
+
       def self.hook_into_test_methods!
         if @hooked
           warn "Covet.register_coverage_collection! called multiple times"
           return
         end
         require 'rspec'
+
         ::RSpec.configuration.after(:suite) do
-          File.open(File.join(Dir.pwd, 'run_log.json'), 'w') do |f|
-            f.write JSON.dump Covet::COLLECTION_LOGS
-          end
+          Covet.log_collection.finish!
         end
 
+        run_num = @run_num
+        skips = @skips
+        failures = @failures
+
         ::RSpec.configuration.around(:each) do |test|
-          before, after = Covet.diff_coverage_for do
-            test.call
+          if run_num == 0
+            base_coverage = CovetCoverage.peek_result
+            base_coverage = Covet.normalize_coverage_info(base_coverage)
+            Covet::BASE_COVERAGE.update base_coverage
+            Covet.log_collection << ['base', base_coverage]
           end
+
+          run_num += 1
+
+          before = CovetCoverage.peek_result
+
+          test.call
+
           rspec_metadata = test.metadata
+
+          # TODO: figure out if failed or skipped, and break out of block if it did
+          #
           # XXX: is this right for all recent versions of rake?
           file = rspec_metadata[:file_path].sub(%r{\A\./}, '') # remove leading './'
           line = rspec_metadata[:line_number]
-          Covet::COLLECTION_LOGS << ["#{file}:#{line}", before, after]
+
+          after = CovetCoverage.peek_result
+          before = Covet.normalize_coverage_info(before)
+          if Covet::BASE_COVERAGE.any?
+            before = Covet.diff_coverages(Covet::BASE_COVERAGE, before)
+          end
+          after = Covet.normalize_coverage_info(after)
+          after = Covet.diff_coverages(before, after)
+
+          if after == before
+            after = nil
+          end
+
+          Covet.log_collection << ["#{file}:#{line}", after]
         end
         @hooked = true
       end

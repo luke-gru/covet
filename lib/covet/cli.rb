@@ -1,4 +1,5 @@
 require 'optparse'
+require_relative 'log_file'
 
 module Covet
   class CLI
@@ -23,18 +24,9 @@ module Covet
 
       if options[:collect_cmdline] && !options[:collect_cmdline].empty?
         cmd = options[:collect_cmdline]
-        ENV['COVET_COLLECT'] = '1'
         puts "Collecting coverage information for each test method..."
         puts cmd
-        pid = fork do
-          # execute `cmd` with coverage information hooks on. `cmd` should
-          # be a minitest or rspec commandline.
-          exec(cmd)
-        end
-        if pid
-          exitstatus = Process.waitpid(pid)
-          exit exitstatus
-        end
+        exec("COVET_COLLECT=1 #{cmd}")
       end
 
       revision = options[:revision]
@@ -53,35 +45,33 @@ module Covet
       end
 
       cov_map = Hash.new { |h, file| h[file] = Hash.new { |i, line| i[line] = [] } }
-      run_log_fname = File.join(Dir.pwd, 'run_log.json')
+      logfile = Covet::LogFile.new
 
-      if File.exist?(run_log_fname)
-        File.open(run_log_fname) do |f|
-          # Read in the coverage info
-          JSON.parse(f.read).each do |args|
-            if args.length == 3 # for Minitest
-              desc = args.first
-            else
-              raise "missing 3rd argument in json log"
+      if logfile.file_exists?
+
+        # Read in the coverage info
+        logfile.load_each_buf! do |buf|
+          buf.each do |args|
+            if args[0] == 'base'
+              next
             end
+            desc = args.first
+            delta = args.last
+            next if delta.nil?
 
-            before, after = args.last(2)
-
-            # calculate the per test coverage
-            delta = Covet.diff_coverages(before, after)
-
-            delta.each_pair do |file, lines|
-              file_map = cov_map[file]
-              lines.each_with_index do |val, i|
-                # skip lines that weren't executed
-                next unless val && val > 0
+            delta.each_pair do |fname, lines_hash|
+              file_map = cov_map[fname]
+              lines_hash.each do |line, _executions|
                 # add the test name to the map. Multiple tests can execute the same
                 # line, so we need to use an array.
-                file_map[i + 1] << desc
+                file_map[line.to_i] << desc
               end
             end
           end
         end
+
+        git_repo = Covet::VCS::Git.find_git_repo_path!
+
         to_run = []
         line_changes.each do |(file, line)|
           if file.start_with?(*Covet.test_directories)
@@ -92,7 +82,7 @@ module Covet
             end
             next
           end
-          full_path = File.join(Dir.pwd, file)
+          full_path = File.join(git_repo, file)
           cov_map[full_path][line].each do |desc|
             to_run << [file, desc] unless to_run.include?([file, desc])
           end
@@ -113,8 +103,8 @@ module Covet
               puts Covet.cmdline_for_run_list(to_run)
             else
               puts "You need to run:"
-              to_run.uniq!
-              to_run.each do |(file, desc)|
+              to_run.uniq! { |(_file, desc)| desc.split('#').first }
+              to_run.each do |(_file, desc)|
                 puts " - #{desc.split('#').first}"
               end
             end
@@ -144,7 +134,7 @@ module Covet
     def self.parse!(argv)
       options = DEFAULTS.dup
 
-      opts_parser = OptionParser.new do |opts|
+      OptionParser.new do |opts|
         opts.banner = "Usage: covet [options]"
         opts.separator ""
         opts.separator "Specific options:"

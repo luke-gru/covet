@@ -17,3 +17,7 @@ implementation-specific glory:
 1) Gather coverage information during test runs, before and after
 each test method in order to know which test methods ran which
 files and lines of the tested application code.
+
+2) Change the application code
+
+3)

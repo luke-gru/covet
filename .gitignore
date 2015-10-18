@@ -1,4 +1,5 @@
 run_log.json
+run_log_index.json
 tmp
 *.so
 *.o

@@ -4,29 +4,77 @@ module Covet
   module TestRunners
     module Minitest
       @hooked = false
+
       def self.hook_into_test_methods!
         if @hooked
           warn "Covet.register_coverage_collection! called multiple times"
           return
         end
         require 'minitest'
-        ::Minitest::Runnable.class_eval do
 
-          ::Minitest.after_run do
-            File.open(File.join(Dir.pwd, 'run_log.json'), 'w') do |f|
-              f.write JSON.dump Covet::COLLECTION_LOGS
-            end
-          end
+        ::Minitest.after_run do
+          Covet.log_collection.finish!
+        end
+
+        ::Minitest::Runnable.class_eval do
+          @@run_num = 0
+          @@skips = 0
+          @@failures = 0
 
           class << self
             alias :covet_old_run_one_method :run_one_method
 
             def run_one_method klass, method_name, reporter
-              file = klass.instance_method(method_name).source_location[0]
-              before, after = Covet.diff_coverage_for do
-                covet_old_run_one_method(klass, method_name, reporter)
+              # first run, collect coverage 'base' coverage information
+              # (coverage information for before any tests get run).
+              if @@run_num == 0
+                base_coverage = CovetCoverage.peek_result
+                base_coverage = Covet.normalize_coverage_info(base_coverage)
+                Covet::BASE_COVERAGE.update base_coverage
+                Covet.log_collection << ['base', base_coverage]
               end
-              Covet::COLLECTION_LOGS << ["#{file}##{method_name}", before, after]
+
+              @@run_num += 1
+              begin
+                file = klass.instance_method(method_name).source_location[0]
+              rescue => e
+                return
+              end
+
+              before = CovetCoverage.peek_result
+
+              result = covet_old_run_one_method(klass, method_name, reporter)
+
+              summary_reporter = result.first
+              skips = summary_reporter.results.select(&:skipped?).size
+
+              # test was skipped, don't record coverage info
+              if @@skips != skips
+                @@skips = skips
+                @@failures += 1
+                return result
+              end
+
+              # test failed, don't record coverage info
+              failures = summary_reporter.results.select(&:failures).size
+              if @@failures != failures
+                @@failures = failures
+                return result
+              end
+
+              after = CovetCoverage.peek_result
+              before = Covet.normalize_coverage_info(before)
+              if Covet::BASE_COVERAGE.any?
+                before = Covet.diff_coverages(Covet::BASE_COVERAGE, before)
+              end
+              after = Covet.normalize_coverage_info(after)
+              after = Covet.diff_coverages(before, after)
+
+              if after == before
+                after = nil
+              end
+              Covet.log_collection << ["#{file}##{method_name}", after]
+              result
             end
           end
         end

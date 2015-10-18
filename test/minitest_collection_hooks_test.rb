@@ -8,12 +8,12 @@ class MinitestCollectionHooks < CovetTest
   end
 
   def test_1
-    @@first_logs = Covet::COLLECTION_LOGS.dup
+    @@first_logs = Covet.log_collection.instance_variable_get("@buf").dup
     # do nothing, assertion(s) are in next test
   end
 
   def test_2
-    assert Covet::COLLECTION_LOGS.any?
-    assert Covet::COLLECTION_LOGS.size != @@first_logs.size
+    assert Covet.log_collection.size > 0
+    assert Covet.log_collection.size != @@first_logs.size
   end
 end

@@ -10,8 +10,12 @@ Covet.register_coverage_collection!
 
 class CovetTest < Minitest::Test
 
-  def diff_coverage_for(&block)
-    Covet.diff_coverage_for(&block)
+  def setup
+    Covet::BASE_COVERAGE.update({})
+  end
+
+  def coverage_before_and_after(&block)
+    Covet.coverage_before_and_after(&block)
   end
 
   def generate_run_list_for_method(before, after, options = {})

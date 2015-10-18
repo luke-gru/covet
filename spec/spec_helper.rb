@@ -8,8 +8,8 @@ Covet.register_coverage_collection!
 
 module CovetTestHelpers
 
-  def diff_coverage_for(&block)
-    Covet.diff_coverage_for(&block)
+  def coverage_before_and_after(&block)
+    Covet.coverage_before_and_after(&block)
   end
 
   def generate_run_list_for_method(before, after, options = {})
