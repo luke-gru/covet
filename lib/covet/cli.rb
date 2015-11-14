@@ -132,7 +132,7 @@ module Covet
       else
         Kernel.abort "Error: The coverage log file doesn't exist.\n" \
           "You need to collect info first with 'covet -c $TEST_CMD'\n" \
-          "Ex: 'covet -c \"rake test\"'"
+          "Ex: covet -c \"rake test\""
       end
     end
   end
