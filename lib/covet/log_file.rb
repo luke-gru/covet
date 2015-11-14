@@ -8,6 +8,9 @@ module Covet
   # information in memory. Instead, we flush the information and write it to
   # disk at certain intervals. This way, we can also load the information in
   # chunks as well, using the same index file.
+  #
+  # TODO: have way to rollback log file if interrupt occurs. Or just have it
+  # be a tempfile until after the suite is done, then it's renamed.
   class LogFile
 
     LoadError = Class.new(StandardError)
@@ -60,14 +63,18 @@ module Covet
         yield res # @var Array
       end
     rescue JSON::ParserError => e
-      raise LoadError, e.message
+      raise LogFile::LoadError, e.message
     end
 
     def file_exists?
       File.exist?(@name)
     end
 
+    # re-opens file
     def reload(mode)
+      if @file && !@file.closed?
+        @file.close
+      end
       @file = File.open(@name, mode)
     end
 
@@ -99,6 +106,9 @@ module Covet
     end
 
     def reload(mode)
+      if @file && !@file.closed?
+        @file.close
+      end
       @file = File.open(@name, mode)
     end
 

@@ -4,3 +4,4 @@ tmp
 *.so
 *.o
 TODO
+Gemfile.lock

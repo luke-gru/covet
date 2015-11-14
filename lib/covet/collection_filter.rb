@@ -1,4 +1,5 @@
 require 'rbconfig'
+require 'set'
 
 module Covet
   # Responsible for filtering out files that shouldn't be logged in the
@@ -9,13 +10,19 @@ module Covet
   # in the `run_log`, and also the amount of processing we have to do on the `run_log`
   # structure when generating the `run_list`.
   module CollectionFilter
-    @@gem_whitelist = ['activesupport', 'rails'] # @var Array<String>
+    if (gem_whitelist = ENV['COVET_GEM_WHITELIST'])
+      @@gem_whitelist = gem_whitelist.split(',').reject(&:empty?)
+    else
+      @@gem_whitelist = []
+    end
     @@custom_filters = [] # @var Array<Proc>
     @@file_whitelist = [] # @var Array<String>, full file path whitelist
     @@regexp_whitelist = [] # @var Array<Regexp>
+    # TODO: use
+    @@filter_stats = Hash.new { |h,k| h[k] = Set.new } # @var Hash<String => Set>, holds info on which files were blacklisted or whitelisted from `run_log`
 
     # @param String|Symbol gem_name
-    def self.remove_gem_filter(gem_name)
+    def self.whitelist_gem(gem_name)
       @@gem_whitelist << gem_name.to_s
     end
 
@@ -52,28 +59,28 @@ module Covet
       # find file names to omit from the run log
       raw_coverage_info.each do |filename, _|
         if whitelisted_filename?(filename)
+          @@filter_stats['whitelisted'] << filename
           next # don't omit
         end
 
         if filename.start_with?(ruby_stdlib_dir)
+          @@filter_stats['stdlib_files'] << filename
           files_to_omit << filename
           next
         end
 
         omitted = gem_base_dirs_to_omit.find do |gem_base_dir|
           if filename.start_with?(gem_base_dir)
+            @@filter_stats['gem_files'] << filename
             files_to_omit << filename
           end
         end
         next if omitted
 
-        if filename =~ /gems/
-          debugger
-        end
-
         # custom filters
         @@custom_filters.find do |filter|
           if filter.call(filename)
+            @@filter_stats['custom_filters'] << filename
             files_to_omit << filename
           end
         end

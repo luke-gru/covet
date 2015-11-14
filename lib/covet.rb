@@ -1,10 +1,8 @@
-require 'json'
-require 'set'
-
 require_relative 'covet/version'
 if defined?(Coverage) && Coverage.respond_to?(:peek_result)
   CovetCoverage = Coverage
 else
+  # TODO: error out if non-mri ruby
   begin
     require_relative 'covet_coverage.so'
   rescue Exception # re-raised
@@ -19,6 +17,7 @@ require_relative 'covet/line_changes_vcs'
 require_relative 'covet/log_collection'
 require_relative 'covet/cli'
 
+# just for testing purposes
 if ENV['COVET_DEBUG']
   if RUBY_VERSION < '2.0'
     gem 'debugger'
@@ -36,9 +35,17 @@ end
 module Covet
   BASE_COVERAGE = {}
 
+  # @return Hash (frozen)
+  def self.options
+    CLI.options || Options::DEFAULTS
+  end
+
   def self.log_collection
     @log_collection
   end
+
+  # TODO: filename should depend on covet options and there should
+  # be multiple run logs in a .covet_run_logs directory or something
   @log_collection = LogCollection.new(
     :filename => File.join(Dir.pwd, 'run_log.json'),
     :bufsize => 50,
@@ -51,6 +58,7 @@ module Covet
     end
   end
   def self.vcs; @vcs; end
+
   self.vcs = :git # default
 
   def self.test_runner=(runner)
@@ -61,7 +69,24 @@ module Covet
       "Expected 'rspec' or 'minitest'"
   end
   def self.test_runner; @test_runner; end
-  self.test_runner = :minitest # default
+
+  if (runner = ENV['COVET_TEST_RUNNER'])
+    self.test_runner = runner
+  else
+    self.test_runner = :minitest # default
+  end
+
+  VALID_TEST_ORDERS = [:random_seeded, :random, :ordered].freeze
+  def self.test_order=(order)
+    unless VALID_TEST_ORDERS.include?(order.intern)
+      raise ArgumentError, "Invalid test order given. Expected one of " \
+        "#{VALID_TEST_ORDERS.map(&:inspect).join(", ")} - #{order.intern.inspect} given"
+    end
+    @test_order = order
+  end
+  def self.test_order; @test_order; end
+
+  self.test_order = :random_seeded # default
 
   def self.test_directories=(*dirs)
     dirs = dirs.flatten
@@ -74,6 +99,8 @@ module Covet
     @test_directories = dirs
   end
   def self.test_directories; @test_directories.dup; end
+
+  # TODO: make this configurable, the test directory could be something else
   self.test_directories = []
   if Dir.exist?('test')
     self.test_directories = self.test_directories + ['test']

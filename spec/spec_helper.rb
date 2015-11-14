@@ -26,7 +26,7 @@ module CovetTestHelpers
       raise ArgumentError, "invalid line number for #{fname}: #{lineno}"
     end
     contents[lineno - 1] = new_line
-    File.open(fname, 'w') {|f| f.write contents.join }
+    File.open(fname, 'w') { |f| f.write contents.join }
     yield
   ensure
     if old_contents

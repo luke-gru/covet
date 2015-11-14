@@ -8,7 +8,9 @@ task :default => [:tests_and_specs]
 Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb'].to_a
   t.verbose = true
-  t.description = 'Run all minitest tests'
+  if t.respond_to?(:description=)
+    t.description = 'Run all minitest tests'
+  end
 end
 
 desc 'Run all rspec specs'
@@ -29,6 +31,7 @@ task :recompile => [:clobber, :compile, :tests_and_specs]
 # for rake:clobber
 CLOBBER.include(
   'run_log.json',
+  'run_log_index.json',
   'ext/covet_coverage/*.{so,o}',
   'ext/covet_coverage/Makefile',
 )
