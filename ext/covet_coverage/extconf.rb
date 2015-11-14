@@ -1,9 +1,4 @@
 require 'mkmf'
-require 'rbconfig'
-
-$VPATH << '$(topdir)' << '$(top_srcdir)'
-$INCFLAGS << " -I$(topdir) -I$(top_srcdir)"
-$CFLAGS +=  " $(CPPFLAGS)"
 
 have_func('rb_obj_hide')
 

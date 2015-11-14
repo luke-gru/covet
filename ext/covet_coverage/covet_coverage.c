@@ -9,6 +9,7 @@
 ************************************************/
 
 #include "ruby.h"
+#include "extconf.h"
 
 extern VALUE rb_get_coverages(void);
 extern void rb_set_coverages(VALUE);
