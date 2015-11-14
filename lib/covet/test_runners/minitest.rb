@@ -116,7 +116,7 @@ module Covet
           test_methods = run_list.map { |double| double[1].split('#').last }
           test_methods.uniq!
           test_methods_regex = Regexp.union(test_methods)
-          cmd << " -n #{test_methods_regex.inspect}"
+          cmd << %Q( "-n #{test_methods_regex.inspect}")
         end
         cmd
       end

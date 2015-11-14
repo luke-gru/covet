@@ -40,7 +40,7 @@ Covet should output a message before any other message:
     Collecting coverage information for each test method...
 
 By default, `covet` hooks into `minitest` and collects coverage before
-and after each method. If you're using `rspec`, make sure to pass the `t`
+and after each method. If you're using `rspec`, make sure to pass the `-t`
 option:
 
     $ covet -t rspec -c rake
@@ -50,21 +50,17 @@ After this, you should have 2 new files: `run_log.json`, and
 
 Now, by default the `covet` command will print out which test
 files should be run based off the changes in your git repo since
-the last commit. If, say, the last time you collected coverage
-information for your suite
+the last commit.
+
+For example:
+
+    $ covet
+
 
 Caveats/Bugs
 ------------
 
-1) It's slow - Collecting the coverage information and logging it currently
-takes too long for certain test suites. For instance, I tested `covet` on
-`activesupport`'s test suite, and it still takes longer than I think
-is necessary. The problem is that the logs are not compressed enough, and
-contain lots of redundant information, but it's hard to figure out exactly
-how to mitigate this without forcing users to run their test suites in the
-same order each time, which is not ideal. Ideas are more than welcome!
+1) It's not tested thoroughly enough.
 
-2) It's not tested thoroughly enough.
-
-3) Don't rely on this yet, it's still early days. Please contribute code,
+2) Don't rely on this yet, it's still early days. Please contribute code,
 docs, or ideas, though!

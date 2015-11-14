@@ -8,10 +8,10 @@ module Covet
     def self.compress(coverage_info)
       ret = {}
       coverage_info.each do |fname, cov_ary|
-        ret[fname] = {}
+        ret[fname] ||= {}
         cov_ary.each_with_index do |times_run, idx|
           next if times_run.to_i == 0
-          ret[fname][idx+1] = times_run
+          ret[fname][idx+1] = times_run # lineno = idx + 1
         end
       end
       ret

@@ -47,7 +47,7 @@ module Covet
       # NOTE: The list of activated gems isn't cached, because it could be
       # that a test method activates a gem or calls code that activates a
       # gem. In that case, we want to omit the newly activated gem from the
-      # run log as well.
+      # run log as well (unless it's whitelisted).
       gem_base_dirs_to_omit = Gem.loaded_specs.values.reject do |spec|
         @@gem_whitelist.include?(spec.name)
       end.map do |spec|
