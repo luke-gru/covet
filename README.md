@@ -26,6 +26,10 @@ certain lines of the application code.
 Usage
 -----
 
+Add `covet` to your Gemfile in your test or development `:group`, or:
+
+    $ gem install covet
+
 Coverage Collection:
 
 Run your test suite with coverage collection on. To enable this,
