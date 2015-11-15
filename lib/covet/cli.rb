@@ -1,6 +1,7 @@
 require 'optparse'
 require_relative 'log_file'
 require_relative 'collection_filter'
+require_relative 'version'
 
 module Covet
   class CLI
@@ -20,7 +21,6 @@ module Covet
       options = nil
       begin
         options = Options.parse!(@argv)
-        options.freeze
         self.class.options = options
       rescue OptionParser::InvalidArgument, OptionParser::InvalidOption => e
         Kernel.abort "Error: #{e.message}"
@@ -61,19 +61,33 @@ module Covet
       end
 
       cov_map = Hash.new { |h, file| h[file] = Hash.new { |i, line| i[line] = [] } }
-      logfile = LogFile.new
+      logfile = LogFile.new(:mode => 'r')
 
       if logfile.file_exists?
 
+        run_stats = {}
         # Read in the coverage info
         logfile.load_each_buf! do |buf|
           buf.each do |args|
-            if args[0] == 'base'
+            if args[0] == 'base' # first value logged
+              run_options = args.last
+              if run_options['version'] != Covet::VERSION
+                warn "Warning - the run log was created with another version of covet " \
+                "(#{run_options['version']}), which is not guaranteed to be compatible " \
+                "with this version of covet (#{Covet::VERSION}). Please run 'covet -c' again."
+              end
               next
             end
-            desc = args.first
-            delta = args.last
+
+            if args[0] == 'stats' # last value logged
+              run_stats.update(args.last)
+              next
+            end
+
+            desc = args[0]
+            delta = args[1]
             next if delta.nil? # no coverage difference
+            #stats = args[2]
 
             delta.each_pair do |fname, lines_hash|
               file_map = cov_map[fname]
@@ -90,19 +104,39 @@ module Covet
 
         to_run = []
         line_changes.each do |(file, line)|
-          # if the actual test files changed, then run them the whole file again.
-          if file.start_with?(*Covet.test_directories)
-            if file.start_with?("test#{File::SEPARATOR}") && file.end_with?('_test.rb')
-              to_run << [file, file] unless to_run.include?([file, file])
-            elsif file.start_with?("spec#{File::SEPARATOR}") && file.end_with?('_spec.rb')
-              to_run << [file, file] unless to_run.include?([file, file])
+          full_path = File.join(git_repo, file)
+          relative_to_pwd = file
+          if git_repo != Dir.pwd
+            relative_to_pwd = full_path.sub(Dir.pwd, '').sub(File::SEPARATOR, '')
+          end
+          # NOTE: here, `file` is a filename starting from the GIT path (not necessarily `Dir.pwd`)
+          # if the actual test files changed, then we need to run the whole file again.
+          if relative_to_pwd.start_with?(*Covet.test_directories)
+            if relative_to_pwd.start_with?("test#{File::SEPARATOR}") && relative_to_pwd.end_with?('_test.rb', '_spec.rb')
+              to_run << [file, full_path] unless to_run.include?([file, full_path])
+              # We have to disable the method filter in this case because we
+              # don't know the method names of all these methods in this file.
+              # TODO: save this information in the coverage log file and use it here.
+              options[:disable_test_method_filter] = true
+            elsif relative_to_pwd.start_with?("spec#{File::SEPARATOR}") && relative_to_pwd.end_with?('_test.rb', '_spec.rb')
+              to_run << [file, full_path] unless to_run.include?([file, full_path])
+              # We have to disable the method filter in this case because we
+              # don't know the method names of all these methods in this file.
+              # TODO: save this information in the coverage log file and use it here.
+              options[:disable_test_method_filter] = true
             end
             next
           end
           # library code changes
-          full_path = File.join(git_repo, file)
           cov_map[full_path][line].each do |desc|
             to_run << [file, desc] unless to_run.include?([file, desc])
+          end
+        end
+        if ENV['COVET_INVERT_RUN_LIST'] == '1' # NOTE: for debugging covet only
+          to_run_fnames = to_run.map { |(_file, desc)| desc.split('#').first }.flatten.uniq
+          all_fnames = Dir.glob("{#{Covet.test_directories.join(',')}}/**/*_{test,spec}.rb").to_a.map { |fname| File.expand_path(fname, Dir.pwd) }
+          to_run = (all_fnames - to_run_fnames).map { |fname| [fname, "#{fname}##{fname}"] }.sort_by do |ary|
+            ary[1].split('#').first
           end
         end
         if options[:exec_run_list]

@@ -6,7 +6,7 @@ module Covet
 
     def initialize(options = {})
       @bufsize = options[:bufsize] || 100 # max log buffer size to keep in memory
-      @log_file = LogFile.new(:filename => options[:filename])
+      @log_file = LogFile.new(:filename => options[:filename], :mode => 'w')
       @buf = []
       @flushes = 0
       @size = 0

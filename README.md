@@ -33,7 +33,7 @@ add `require 'covet'` before any tests run (in a test helper file or similar),
 and run your suite with: `covet -c $CMD`, where $CMD is the command to run your
 test suite. Example:
 
-        $ covet -c "rake test"
+    $ covet -c "rake test"
 
 Covet should output a message before any other message:
 
@@ -43,7 +43,7 @@ By default, `covet` hooks into `minitest` and collects coverage before
 and after each method. If you're using `rspec`, make sure to pass the `-t`
 option:
 
-        $ covet -t rspec -c "rake test"
+    $ covet -t rspec -c "rake test"
 
 After this, you should have 2 new files: `run_log.json`, and
 `run_log_index.json`.
@@ -54,14 +54,14 @@ the last commit.
 
 For example:
 
-        $ covet
+    $ covet
 
-        You need to run:
-        - /home/luke/Desktop/code/rails/activesupport/test/test_case_test.rb
+    You need to run:
+    - /home/luke/Desktop/code/rails/activesupport/test/test\_case\_test.rb
 
 To execute the run list, simply:
 
-        $ covet -e
+    $ covet -e
 
 Testing Gems
 ------------
@@ -70,7 +70,7 @@ By default, `covet` removes all standard library and gem files from the `run_log
 it assumes you're testing your own library code. In order to test a gem, you need to add the
 `--whitelist-gems` option. For example:
 
-       $ covet -c "rake test" --whitelist-gems "activesupport,rails"
+    $ covet -c "rake test" --whitelist-gems "activesupport,rails"
 
 Caveats/Bugs
 ------------

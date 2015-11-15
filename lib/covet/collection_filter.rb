@@ -18,7 +18,6 @@ module Covet
     @@custom_filters = [] # @var Array<Proc>
     @@file_whitelist = [] # @var Array<String>, full file path whitelist
     @@regexp_whitelist = [] # @var Array<Regexp>
-    # TODO: use
     @@filter_stats = Hash.new { |h,k| h[k] = Set.new } # @var Hash<String => Set>, holds info on which files were blacklisted or whitelisted from `run_log`
 
     # @param String|Symbol gem_name
@@ -39,6 +38,10 @@ module Covet
     end
     def self.add_to_regexp_whitelist(regexp)
       @@regexp_whitelist << regexp
+    end
+
+    def self.files_filtered
+      Hash[@@filter_stats.map { |k, v| [k, v.to_a] }]
     end
 
     # @return Hash

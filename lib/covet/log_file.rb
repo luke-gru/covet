@@ -8,39 +8,53 @@ module Covet
   # information in memory. Instead, we flush the information and write it to
   # disk at certain intervals. This way, we can also load the information in
   # chunks as well, using the same index file.
-  #
-  # TODO: have way to rollback log file if interrupt occurs. Or just have it
-  # be a tempfile until after the suite is done, then it's renamed.
   class LogFile
+    require 'tempfile'
+    require 'fileutils'
 
     LoadError = Class.new(StandardError)
 
     attr_reader :name, :writes
 
     def initialize(options = {})
+      @mode = options[:mode] || 'w'
       @name = options[:filename] || File.join(Dir.pwd, 'run_log.json')
+      if @mode != 'r'
+        # We only want to create the real file during the `write_end` method, so write to
+        # a tempfile until then. This is in case the user stops their test suite with an
+        # interrupt.
+        @tmpfile = Tempfile.new(File.basename(@name))
+        @tmpname = @tmpfile.path
+      else
+        @tmpfile = nil
+        @tmpname = nil
+      end
       @index_file = LogFileIndex.new(:filename => options[:index_filename])
       @writes = 0
     end
 
     def write_start
-      file.write('[')
+      check_can_write!
+      @tmpfile.write('[')
       @writes += 1
     end
 
     def write_buf(buf)
-      pos_start = file.pos
-      file.write(JSON.dump(buf) + ',')
+      check_can_write!
+      pos_start = @tmpfile.pos
+      @tmpfile.write(JSON.dump(buf) + ',')
       @writes += 1
-      pos_after = file.pos
+      pos_after = @tmpfile.pos
       @index_file.add_index(pos_start, pos_after - pos_start)
     end
 
     def write_end
-      file.pos -= 1 # remove final comma at end of array
-      file.write(']')
+      check_can_write!
+      @tmpfile.pos -= 1 # remove final comma at end of array
+      @tmpfile.write(']')
       @writes += 1
-      file.close
+      @tmpfile.close
+      FileUtils.cp(@tmpfile, @name)
       @index_file.finish!
     end
 
@@ -49,29 +63,39 @@ module Covet
     end
 
     # Yields each coverage buffer (Array) one a time from the run log.
+    # @raises LogFile::LoadError
     def load_each_buf! # yields
-      @index_file.reload('r')
-      reload('r')
+      @index_file.reload!('r')
+      reload!('r')
       index = JSON.load(File.read(@index_file.name))
       index.each do |(pos, bytes_to_read)|
-        file.pos = pos
-        buf = file.read(bytes_to_read)
-        if buf.end_with?(',', ']]')
-          buf = buf[0..-2]
-        end
-        res = JSON.load(buf)
+        res = load_buf_from_file!(pos, bytes_to_read)
         yield res # @var Array
       end
-    rescue JSON::ParserError => e
-      raise LogFile::LoadError, e.message
+    end
+
+    # @raises LogFile::LoadError
+    # @return Array
+    def load_buf!(buf_idx)
+      @index_file.reload!('r')
+      reload!('r')
+      index = JSON.load(File.read(@index_file.name))
+      pos, bytes_to_read = index[buf_idx]
+      load_buf_from_file!(pos, bytes_to_read)
+    end
+
+    # @raises LogFile::LoadError
+    # @return Hash
+    def load_run_stats!
+      load_buf!(-1).last[-1]
     end
 
     def file_exists?
       File.exist?(@name)
     end
 
-    # re-opens file
-    def reload(mode)
+    # re-opens file, can raise Errno::ENOENT
+    def reload!(mode)
       if @file && !@file.closed?
         @file.close
       end
@@ -81,7 +105,26 @@ module Covet
     private
 
       def file
-        @file ||= File.open(@name, 'w')
+        @file ||= File.open(@name, @mode)
+      end
+
+      def check_can_write!
+        if @mode == 'r'
+          raise "For writing to the log file, you must construct it with a different :mode"
+        end
+      end
+
+      # @raises LogFile::LoadError
+      # @return Array
+      def load_buf_from_file!(pos, bytes_to_read)
+        file.pos = pos
+        buf = file.read(bytes_to_read)
+        if buf.end_with?(',', ']]')
+          buf = buf[0..-2]
+        end
+        JSON.load(buf)
+      rescue JSON::ParserError => e
+        raise LogFile::LoadError, e.message
       end
 
   end
@@ -105,7 +148,7 @@ module Covet
       end
     end
 
-    def reload(mode)
+    def reload!(mode)
       if @file && !@file.closed?
         @file.close
       end

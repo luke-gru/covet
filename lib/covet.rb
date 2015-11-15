@@ -100,7 +100,7 @@ module Covet
   end
   def self.test_directories; @test_directories.dup; end
 
-  # TODO: make this configurable, the test directory could be something else
+  # FIXME: make this configurable, the test directory could be something else
   self.test_directories = []
   if Dir.exist?('test')
     self.test_directories = self.test_directories + ['test']

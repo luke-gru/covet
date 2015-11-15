@@ -11,21 +11,17 @@ module Covet
       def self.changes_since(revision = :last_commit)
         repo = Rugged::Repository.new(find_git_repo_path!) # raises if can't find git repo
         lines_to_run = Set.new
-        diff_opts = {
-          :ignore_whitespace => true,
-          :ignore_filemode => true,
-        }
         diff = case revision.to_s
         when 'last_commit', 'HEAD'
-          repo.index.diff(diff_opts)
+          repo.index.diff
         else
           # raises Rugged::Error or TypeError if `revision` is invalid Git object id
           # (tag name or sha1, etc.)
           commit = Rugged::Commit.new(repo, revision)
-          repo.index.diff(commit, diff_opts)
+          repo.index.diff(commit, {}) # NOTE: for some reason, this call doesn't work properly if the second parameter isn't given. Bug in rugged?
         end
         diff.each_patch { |patch|
-          file = patch.delta.old_file[:path]
+          file = patch.delta.old_file[:path] # NOTE: old file is the index's version
 
           patch.each_hunk { |hunk|
             hunk.each_line { |line|
