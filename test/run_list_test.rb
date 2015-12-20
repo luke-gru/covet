@@ -21,6 +21,7 @@ class RunListTest < CovetTest
       obj = MyClass.new
       assert_equal 'bye', obj.goodbye
     end
+    MyClass.class_eval { undef :goodbye }
 
     refute_equal before, after
     list = generate_run_list_for_method(before, after, :method_name => __method__)

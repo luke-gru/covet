@@ -136,7 +136,7 @@ module Covet
   # @return Array
   def self.coverage_before_and_after # yields
     before = CovetCoverage.peek_result
-    yield if block_given?
+    yield
     after = CovetCoverage.peek_result
     before = normalize_coverage_info(before)
     if Covet::BASE_COVERAGE.any?

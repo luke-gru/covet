@@ -1,14 +1,19 @@
 require_relative '../lib/covet'
 require_relative 'fakelib'
 gem 'minitest'
-require 'minitest'
-require 'minitest/autorun'
-Minitest.autorun
+begin
+  require 'minitest' # minitest 5
+  Minitest.autorun
+rescue LoadError
+  require 'minitest/unit' # minitest 4
+  require 'minitest/autorun'
+end
 
+Covet::CollectionFilter.whitelist_gem('covet')
 CovetCoverage.start
 Covet.register_coverage_collection!
 
-class CovetTest < Minitest::Test
+class CovetTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase
 
   def setup
     Covet::BASE_COVERAGE.update({})
@@ -32,11 +37,15 @@ class CovetTest < Minitest::Test
       raise ArgumentError, "invalid line number for #{fname}: #{lineno}"
     end
     contents[lineno - 1] = new_line
-    File.open(fname, 'w') {|f| f.write contents.join }
+    File.open(fname, 'w') do |f|
+      f.write contents.join
+    end
     yield
   ensure
     if old_contents
-      File.open(fname, 'w') {|f| f.write old_contents.join }
+      File.open(fname, 'w') do |f|
+        f.write old_contents.join
+      end
     end
   end
 

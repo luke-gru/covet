@@ -11,7 +11,10 @@ Gem::Specification.new do |s|
 
   s.license = 'MIT'
 
-  s.authors   = ['Luke Gruber'] # idea and some code taken directly from Aaron Patterson
+  # The idea and some code is taken directly from Aaron Patterson.
+  # See http://tenderlovemaking.com/2015/02/13/predicting-test-failues.html
+  # for more info.
+  s.authors   = ['Luke Gruber']
   s.email    = 'luke.gru@gmail.com'
 
   s.bindir = 'bin'
@@ -28,4 +31,6 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'rugged' # TODO: remove from here and autodetect later when more VCSs are supported
   s.add_development_dependency 'rake-compiler'
+  s.add_development_dependency 'wwtd'
+  s.add_development_dependency 'bundler'
 end

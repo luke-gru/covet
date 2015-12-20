@@ -5,3 +5,6 @@ tmp
 *.o
 TODO
 Gemfile.lock
+gemfiles/*.lock
+*.gem
+.bundle

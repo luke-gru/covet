@@ -1,0 +1,10 @@
+# .travis.yml
+rvm:
+  #- 1.9.3
+  - 2.2.0
+gemfile:
+  - gemfiles/minitest4-0-0.gemfile
+  - gemfiles/minitest5-0-8.gemfile
+  - gemfiles/minitest5-3-3.gemfile
+  - gemfiles/minitest5-7-0.gemfile
+script: "bundle exec rake test"

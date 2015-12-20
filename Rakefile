@@ -2,8 +2,10 @@ require 'rake/testtask'
 require 'rake/extensiontask'
 require 'rspec/core/rake_task'
 require 'rake/clean'
+require 'wwtd/tasks'
 
 task :default => [:tests_and_specs]
+task :travis => [:wwtd] # run travis builds locally
 
 Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb'].to_a
@@ -34,4 +36,5 @@ CLOBBER.include(
   'run_log_index.json',
   'ext/covet_coverage/*.{so,o}',
   'ext/covet_coverage/Makefile',
+  'gemfiles/*.lock',
 )

@@ -1,0 +1,9 @@
+# vim: ft=ruby
+
+source 'https://rubygems.org'
+gemspec :path => '../'
+
+group :test, :development do
+  gem 'minitest', '5.3.3'
+  gem 'rspec'
+end

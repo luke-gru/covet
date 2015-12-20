@@ -114,7 +114,7 @@ rb_coverage_result(void)
     VALUE coverages = rb_get_coverages();
     VALUE ncoverages = rb_hash_new();
     if (!RTEST(coverages)) {
-        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled (covet)");
     }
     st_foreach(RHASH_TBL(coverages), coverage_result_i, ncoverages);
     rb_hash_freeze(ncoverages);
