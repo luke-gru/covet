@@ -8,3 +8,5 @@ Gemfile.lock
 gemfiles/*.lock
 *.gem
 .bundle
+/vendor
+.byebug_*

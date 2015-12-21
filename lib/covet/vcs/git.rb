@@ -18,7 +18,7 @@ module Covet
           # raises Rugged::Error or TypeError if `revision` is invalid Git object id
           # (tag name or sha1, etc.)
           commit = Rugged::Commit.new(repo, revision)
-          repo.index.diff(commit, {}) # NOTE: for some reason, this call doesn't work properly if the second parameter isn't given. Bug in rugged?
+          repo.index.diff(commit, {}) # NOTE: for some reason, this call doesn't work properly if the second argument isn't given. Bug in rugged?
         end
         diff.each_patch { |patch|
           file = patch.delta.old_file[:path] # NOTE: old file is the index's version

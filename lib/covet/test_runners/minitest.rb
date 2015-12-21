@@ -40,7 +40,7 @@ module Covet
             end
           end
 
-          if ::Minitest::Runnable.method_defined?(:run_one_method) # minitest > 5.0.8
+          if ::Minitest::Runnable.respond_to?(:run_one_method) # minitest > 5.0.8
           ::Minitest::Runnable.class_eval do
             @@covet_run_num = 0
             @@covet_skips = 0
@@ -138,7 +138,7 @@ module Covet
 
             end
           end
-          else
+          elsif ::Minitest::Runnable.respond_to?(:run)
             # minitest ~ 5.0.8
             ::Minitest::Runnable.class_eval do
               @@covet_run_num = 0
@@ -248,8 +248,10 @@ module Covet
 
               end
             end
+          else
+            raise "Minitest version #{::Minitest::VERSION rescue '?'} not supported."
           end
-        else
+        elsif defined?(::Minitest::Unit::TestCase) && ::Minitest::Unit::TestCase.method_defined?(:run)
           ::Minitest::Unit.after_tests do
             after_t = Time.now
             diff_t = after_t - ::Minitest::Unit::TestCase.covet_start_time
@@ -359,6 +361,8 @@ module Covet
             end
 
           end
+        else
+          raise "Minitest version #{::Minitest::VERSION rescue '?'} not supported."
         end
         @hooked = true
       end

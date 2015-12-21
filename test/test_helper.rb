@@ -49,6 +49,10 @@ class CovetTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::Te
     end
   end
 
+  def method_in_coverage_info?(info, method)
+    # TODO
+  end
+
   def remove_file(fname) # yields
     check_file_exists!(fname)
     # TODO

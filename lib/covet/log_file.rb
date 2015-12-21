@@ -1,4 +1,6 @@
 require 'json'
+require 'tempfile'
+require 'fileutils'
 
 module Covet
   # Represents log file of JSON coverage information for each test method.
@@ -9,8 +11,6 @@ module Covet
   # disk at certain intervals. This way, we can also load the information in
   # chunks as well, using the same index file.
   class LogFile
-    require 'tempfile'
-    require 'fileutils'
 
     LoadError = Class.new(StandardError)
 

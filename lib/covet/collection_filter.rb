@@ -26,7 +26,7 @@ module Covet
     end
 
     # FIXME: should take filename AND method name
-    # @param Proc filter, arity = 1, takes filename
+    # @param [Proc] filter, arity = 1, takes filename
     def self.add_custom_filter(&filter)
       @@custom_filters << filter
     end
