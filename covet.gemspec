@@ -23,9 +23,19 @@ Gem::Specification.new do |s|
   s.files = Dir[
     'lib/**/*.rb',
     'ext/**/*.{c,rb}',
+    'bin/*',
+    'test/**/*.rb',
+    'spec/**/*.rb',
+    'README.md',
     'Rakefile',
     'Gemfile',
-    'README.md',
+    'gemfiles/*.gemfile',
+    '.travis.yml',
+    '.gitignore',
+  ]
+  s.test_files = Dir[
+    'test/**/*.rb',
+    'spec/**/*.rb',
   ]
   s.extensions = ['ext/covet_coverage/extconf.rb']
 
