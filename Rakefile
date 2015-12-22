@@ -25,7 +25,9 @@ desc 'Run minitest and rspec tests (default)'
 task :tests_and_specs => [:test, :spec]
 
 desc 'compile internal coverage C extension'
-Rake::ExtensionTask.new('covet_coverage')
+Rake::ExtensionTask.new('covet_coverage') do |ext|
+  ext.lib_dir = 'lib' # output covet_coverage.so to 'lib' directory
+end
 
 desc 'recompile internal coverage C extension'
 task :recompile => [:clobber, :compile, :tests_and_specs]

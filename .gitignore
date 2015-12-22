@@ -2,6 +2,8 @@ run_log.json
 run_log_index.json
 tmp
 *.so
+*.bundle
+*.dll
 *.o
 TODO
 Gemfile.lock

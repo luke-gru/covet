@@ -1,10 +1,12 @@
 require_relative 'covet/version'
 if defined?(Coverage) && Coverage.respond_to?(:peek_result)
   CovetCoverage = Coverage
+elsif defined?(Coverage)
+  raise "The 'coverage' library from ruby's standard library is already loaded, and it conflicts with this gem"
 else
   # TODO: error out if non-mri ruby
   begin
-    require_relative 'covet_coverage.so'
+    require_relative 'covet_coverage'
   rescue Exception # re-raised
     $stderr.puts "Error loading 'covet' C extension.\n" \
       "Please report this bug along with a backtrace. Thanks :)"
