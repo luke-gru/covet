@@ -1,8 +1,6 @@
 require_relative 'covet/version'
 if defined?(Coverage) && Coverage.respond_to?(:peek_result)
   CovetCoverage = Coverage
-elsif defined?(Coverage)
-  raise "The 'coverage' library from ruby's standard library is already loaded, and it conflicts with this gem"
 else
   # TODO: error out if non-mri ruby
   begin
@@ -28,20 +26,21 @@ if ENV['COVET_DEBUG']
     gem 'byebug'
     require 'byebug'
   end
-else
-  if !defined?(debugger)
-    def debugger; end
-  end
+#else
+  #if !defined?(debugger)
+    #def debugger; end
+  #end
 end
 
 module Covet
   BASE_COVERAGE = {}
 
-  # @return Hash (frozen)
+  # @return Hash
   def self.options
     CLI.options || Options::DEFAULTS
   end
 
+  # Singleton for collecting and writing log information during the collection phase.
   def self.log_collection
     @log_collection
   end
@@ -53,6 +52,8 @@ module Covet
     :bufsize => 50,
   )
 
+  # Set the version control system to use for seeing which files have changed
+  # since a certain version.
   def self.vcs=(vcs)
     @vcs = vcs.intern
     if @vcs != :git
@@ -63,6 +64,8 @@ module Covet
 
   self.vcs = :git # default
 
+  # Set the test runner library to hook into, gathering and logging coverage
+  # information during the collection phase for each test method.
   def self.test_runner=(runner)
     @test_runner = runner.intern
     require_relative "covet/test_runners/#{runner}"
@@ -78,6 +81,8 @@ module Covet
     self.test_runner = :minitest # default
   end
 
+  # Tell `covet` the order in which your tests are run, which allows it to
+  # save space and time during the coverage collection phase in certain situations.
   VALID_TEST_ORDERS = [:random_seeded, :random, :ordered].freeze
   def self.test_order=(order)
     unless VALID_TEST_ORDERS.include?(order.intern)
@@ -111,10 +116,14 @@ module Covet
     self.test_directories = self.test_directories + ['spec']
   end
 
+  @coverage_collection_registered = false
+  # Register coverage collection with the test library `Covet.test_runner`.
+  # This happens during the collection phase.
   def self.register_coverage_collection!
     # stdlib Coverage can't run at the same time as CovetCoverage or
     # bad things will happen
     if defined?(Coverage) && !Coverage.respond_to?(:peek_result)
+      warn "The 'coverage' library is already loaded. It could cause issues with this library."
       # There's no way to tell if coverage is enabled or not, and
       # if we try stopping the coverage and it's not enabled, it raises
       # a RuntimeError.
@@ -124,8 +133,14 @@ module Covet
     Covet::TestRunners.const_get(
       @test_runner.to_s.capitalize
     ).hook_into_test_methods!
+    @coverage_collection_registered = true
   end
 
+  def self.coverage_collection_registered?
+    @coverage_collection_registered
+  end
+
+  # Returns the command line to run the tests given in `run_list`.
   # @return String
   def self.cmdline_for_run_list(run_list)
     Covet::TestRunners.const_get(
@@ -133,7 +148,7 @@ module Covet
     ).cmdline_for_run_list(run_list)
   end
 
-  # Returns coverage information for before `block` ran, and after `block` ran
+  # Returns coverage information for before block ran, and after block ran
   # for the codebase in its current state.
   # @return Array
   def self.coverage_before_and_after # yields
@@ -149,6 +164,8 @@ module Covet
     [before, after]
   end
 
+  # Filter and compress `coverage_info` to make it more manageable to log
+  # to the collection file, and so that processing it will be faster.
   def self.normalize_coverage_info(coverage_info)
     filtered = CollectionFilter.filter(coverage_info)
     CollectionCompressor.compress(filtered)
@@ -172,6 +189,10 @@ module Covet
     cov_map
   end
 
+  # Get the difference between `before`'s coverage info and `after`'s coverage
+  # info.
+  # @param [Hash] before
+  # @param [Hash] after
   # @return Hash
   def self.diff_coverages(before, after)
     ret = after.each_with_object({}) do |(file_name, after_line_cov), res|
@@ -203,6 +224,6 @@ module Covet
   end
 end
 
-if ENV['COVET_COLLECT'] == '1'
+if ENV['COVET_COLLECT'] == '1' && !Covet.coverage_collection_registered?
   Covet.register_coverage_collection!
 end

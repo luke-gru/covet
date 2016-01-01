@@ -1,6 +1,6 @@
 run_log.json
 run_log_index.json
-tmp
+/tmp
 *.so
 *.bundle
 *.dll
@@ -9,6 +9,5 @@ TODO
 Gemfile.lock
 gemfiles/*.lock
 *.gem
-.bundle
 /vendor
 .byebug_*

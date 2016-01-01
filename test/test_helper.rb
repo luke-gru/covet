@@ -10,7 +10,6 @@ rescue LoadError
 end
 
 Covet::CollectionFilter.whitelist_gem('covet')
-CovetCoverage.start
 Covet.register_coverage_collection!
 
 class CovetTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase

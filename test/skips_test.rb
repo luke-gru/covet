@@ -1,6 +1,6 @@
 require_relative 'test_helper'
 
-class SkipsAndFailuresTest < CovetTest
+class SkipsTest < CovetTest
   def self.test_order
     :sorted
   end
@@ -8,7 +8,7 @@ class SkipsAndFailuresTest < CovetTest
   @@collections = nil
 
   def setup
-    # ... do nothing. Don't call super to make sure coverage information isn't cleared before each new test
+    # ... do nothing. Don't call `super` to make sure coverage information isn't cleared before each new test
   end
 
   def test_1_skip

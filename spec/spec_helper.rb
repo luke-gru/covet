@@ -4,6 +4,7 @@ gem 'rspec'
 require 'rspec'
 
 Covet.test_runner = :rspec
+Covet::CollectionFilter.whitelist_gem('covet')
 Covet.register_coverage_collection!
 
 module CovetTestHelpers
