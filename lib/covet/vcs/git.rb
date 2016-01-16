@@ -6,6 +6,8 @@ module Covet
 
       # Find lines in git-indexed files that were changed (added/deleted/modified)
       # in the codebase since `revision`.
+      # @param [String|Symbol] revision, commit revision hash or special symbol
+      #   representing a commit.
       # @raise Rugged::Error, Rugged::InvalidError, TypeError
       # @return Set<Array>
       def self.changes_since(revision = :last_commit)

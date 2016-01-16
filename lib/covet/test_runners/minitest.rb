@@ -367,7 +367,7 @@ module Covet
         @hooked = true
       end
 
-      def self.cmdline_for_run_list(run_list)
+      def self.cmdline_for_run_list(run_list, options = {})
         files = run_list.map { |double| double[1].split('#').first }
         files.uniq!
 
@@ -379,7 +379,7 @@ module Covet
         cmd = %Q(ruby -I"test" -I"lib" #{rake_include_arg} "#{rake_loader_str}" ) +
           files_str
 
-        unless Covet.options[:disable_test_method_filter]
+        unless Covet.options[:disable_test_method_filter] || options[:all_test_files]
           test_methods = run_list.map { |double| double[1].split('#').last }
           test_methods.uniq!
           test_methods_regex = Regexp.union(test_methods)

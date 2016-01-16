@@ -1,6 +1,8 @@
 require 'optparse'
+require 'json'
 require_relative 'log_file'
 require_relative 'collection_filter'
+require_relative 'run_list_printer'
 require_relative 'version'
 
 module Covet
@@ -26,6 +28,7 @@ module Covet
         Kernel.abort "Error: #{e.message}"
       end
 
+      # Run coverage collection
       if options[:collect_cmdline] && !options[:collect_cmdline].empty?
         cmd = options[:collect_cmdline]
         env_options = { 'COVET_COLLECT' => '1' }
@@ -42,6 +45,10 @@ module Covet
         Kernel.exec cmd
       end
 
+      # Gather run list for printing or execution by finding changed files and
+      # lines using version control system, and compare those changed files
+      # and lines with the coverage information that was gathered during
+      # coverage collection for each test method.
       revision = options[:revision]
       line_changes = nil # establish scope
       begin
@@ -56,7 +63,11 @@ module Covet
         if revision.to_s == 'last_commit'
           revision = "last commit" # prettier output below
         end
-        puts "# No changes since #{revision}. You can specify the #{options[:VCS]} revision using the --revision option."
+        if options[:print_run_list] && options[:print_run_list_format] == :json
+          puts JSON.dump({'test_files' => [], 'meta' => { 'no_file_changes' => true}})
+        else
+          puts "# No changes since #{revision}. You can specify the #{options[:VCS]} revision using the --revision option."
+        end
         Kernel.exit
       end
 
@@ -65,6 +76,7 @@ module Covet
 
       if logfile.file_exists?
 
+        all_test_files = []
         run_stats = {}
         # Read in the coverage info
         logfile.load_each_buf! do |buf|
@@ -76,7 +88,6 @@ module Covet
                 "(#{run_options['version']}), which is not guaranteed to be compatible " \
                 "with this version of covet (#{Covet::VERSION}). Please run 'covet -c' again."
               end
-              next
             end
 
             if args[0] == 'stats' # last value logged
@@ -90,6 +101,7 @@ module Covet
             #stats = args[2]
 
             delta.each_pair do |fname, lines_hash|
+              all_test_files << fname unless all_test_files.include?(fname)
               file_map = cov_map[fname]
               lines_hash.each do |line, _executions|
                 # add the test name to the map. Multiple tests can execute the same
@@ -109,59 +121,57 @@ module Covet
           if git_repo != Dir.pwd
             relative_to_pwd = full_path.sub(Dir.pwd, '').sub(File::SEPARATOR, '')
           end
-          # NOTE: here, `file` is a filename starting from the GIT path (not necessarily `Dir.pwd`)
-          # if the actual test files changed, then we need to run the whole file again.
+          # test file changes
+          # NOTE: here, `file` is a filename starting from the git path (not necessarily `Dir.pwd`).
+          # If the actual test file changed, then we need to run the whole test file again.
           if relative_to_pwd.start_with?(*Covet.test_directories)
             if relative_to_pwd.start_with?("test#{File::SEPARATOR}") && relative_to_pwd.end_with?('_test.rb', '_spec.rb')
-              to_run << [file, full_path] unless to_run.include?([file, full_path])
+              to_run << [file, full_path, line] unless to_run.find { |ary| ary.first == file && ary[1] == full_path }
               # We have to disable the method filter in this case because we
-              # don't know the method names of all these methods in this file.
-              # TODO: save this information in the coverage log file and use it here.
+              # don't know the names of the methods in this file.
               options[:disable_test_method_filter] = true
             elsif relative_to_pwd.start_with?("spec#{File::SEPARATOR}") && relative_to_pwd.end_with?('_test.rb', '_spec.rb')
-              to_run << [file, full_path] unless to_run.include?([file, full_path])
+              to_run << [file, full_path, line] unless to_run.find { |ary| ary.first == file && ary[1] == full_path }
               # We have to disable the method filter in this case because we
-              # don't know the method names of all these methods in this file.
-              # TODO: save this information in the coverage log file and use it here.
+              # don't know the names of the methods in this file.
               options[:disable_test_method_filter] = true
             end
             next
           end
           # library code changes
           cov_map[full_path][line].each do |desc|
-            to_run << [file, desc] unless to_run.include?([file, desc])
+            to_run << [file, desc, line] unless to_run.find { |ary| ary.first == file && ary[1] == desc }
           end
         end
-        if ENV['COVET_INVERT_RUN_LIST'] == '1' # NOTE: for debugging covet only
-          to_run_fnames = to_run.map { |(_file, desc)| desc.split('#').first }.flatten.uniq
-          all_fnames = Dir.glob("{#{Covet.test_directories.join(',')}}/**/*_{test,spec}.rb").to_a.map { |fname| File.expand_path(fname, Dir.pwd) }
-          to_run = (all_fnames - to_run_fnames).map { |fname| [fname, "#{fname}##{fname}"] }.sort_by do |ary|
-            ary[1].split('#').first
-          end
+        changes_to_app_load = to_run.select { |ary| ary[1] == 'base' }
+        changes_to_app_load.delete_if do |file_change, desc, line|
+          # FIXME: figure out why I have to do `line + 1`
+          to_run.find { |ary| ary[0] == file_change && ary[1] != 'base' && ary[2] == line + 1 }
         end
+        must_run_all_test_files = false
+        if changes_to_app_load.any?
+          to_run = all_test_files
+          must_run_all_test_files = true
+        else
+          to_run.delete_if { |ary| ary[1] == 'base' }
+        end
+
+        # execute or print run list
         if options[:exec_run_list]
           if to_run.empty?
             puts "# No test cases to run"
           else
-            cmdline = Covet.cmdline_for_run_list(to_run)
+            cmdline = Covet.cmdline_for_run_list(to_run, :all_test_files => must_run_all_test_files)
             puts cmdline
             Kernel.exec cmdline
           end
         elsif options[:print_run_list]
-          if to_run.empty?
-            puts "# No test cases to run"
-          else
-            if options[:print_run_list_format] == :"test-runner"
-              puts Covet.cmdline_for_run_list(to_run)
-            else
-              # TODO: show not just the files but also the methods in each file
-              puts "You need to run:"
-              to_run.uniq! { |(_file, desc)| desc.split('#').first }
-              to_run.each do |(_file, desc)|
-                puts " - #{desc.split('#').first}"
-              end
-            end
-          end
+          printer = Covet::RunListPrinter.new(
+            to_run,
+            :must_run_all_test_files => must_run_all_test_files,
+            :print_run_list_format => options[:print_run_list_format]
+          )
+          puts printer.print_str
         end
       else
         Kernel.abort "Error: The coverage log file doesn't exist.\n" \
@@ -181,7 +191,9 @@ module Covet
       :exec_run_list => false,
       :disable_test_method_filter => false,
       :print_run_list => true,
-      :print_run_list_format => :simple,
+      :print_run_list_format => :list,
+      :print_collection_stats => false, # TODO: use
+      :ignore_changed_files => [], # TODO: use
       :collect_gem_whitelist => [], # ENV['COVET_GEM_WHITELIST']
       :debug => false, # TODO: use
       :verbose => 0, # TODO: levels 0, 1, 2, maybe?
@@ -203,14 +215,13 @@ module Covet
           options[:collect_gem_whitelist] = gems
           gems.each { |gem| CollectionFilter.whitelist_gem(gem) }
         end
-        opts.on('-f', '--print-fmt FMT', "Format run list - 'simple' (default) or 'test-runner'") do |fmt|
+        opts.on('-f', '--print-fmt FMT', "Format run list - 'list' (default), 'test-runner' or 'json'") do |fmt|
           case fmt
-          # TODO: add 'json' format to dump run list in JSON
-          when 'simple', 'test-runner'
+          when 'list', 'test-runner', 'json'
             options[:print_run_list_format] = fmt.intern
           else
             raise OptionParser::InvalidArgument,
-              "Valid values: 'simple', 'test-runner'"
+              "Valid values: 'list', 'test-runner', 'json'"
           end
         end
         opts.on('-e', '--exec', 'Execute run list') do

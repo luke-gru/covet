@@ -70,7 +70,7 @@ module Covet
         @hooked = true
       end
 
-      def self.cmdline_for_run_list(run_list)
+      def self.cmdline_for_run_list(run_list, options = {})
         require 'rspec/core/rake_task'
         files = run_list.map { |double| double[1] }
         files.uniq!

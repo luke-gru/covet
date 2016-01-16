@@ -1,6 +1,7 @@
 require_relative 'log_file'
 
 module Covet
+  # Collects coverage log information during test runs.
   class LogCollection
     attr_reader :flushes, :size
 

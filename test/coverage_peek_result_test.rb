@@ -21,11 +21,6 @@ class CoveragePeekResultTest < CovetTest
         coverage_test_method
         cov2 = CovetCoverage.peek_result[tmp + '/test.rb']
         assert_equal cov[1] + 1, cov2[1]
-        begin
-          assert_equal cov2, CovetCoverage.result[tmp + '/test.rb']
-        ensure # `CovetCoverage#result` stops coverage collection
-          CovetCoverage.start
-        end
       }
     }
   ensure

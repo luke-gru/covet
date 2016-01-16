@@ -3,13 +3,19 @@ require 'tempfile'
 require 'fileutils'
 
 module Covet
-  # Represents log file of JSON coverage information for each test method.
+  # Represents log file of JSON coverage information for each test method that ran.
   # For each write of a memory buffer to disk, a separate index file keeps track
   # of the file offset and bytes written for the buffer. This is so that when
   # there lots of tests in a test suite, we don't have to keep all coverage
   # information in memory. Instead, we flush the information and write it to
   # disk at certain intervals. This way, we can also load the information in
   # chunks as well, using the same index file.
+  # NOTE: Although this works, it's no longer needed because the coverage
+  # information that's logged is much, much less than when this class was
+  # first introduced. To give you an idea, running `covet` on `activesupport`
+  # used to produce a 1GB coverage log, and now produces around 4MB. This is
+  # due to compression of the coverage format, filtering of gem coverage, and
+  # only logging the coverage changes between each test.
   class LogFile
 
     LoadError = Class.new(StandardError)

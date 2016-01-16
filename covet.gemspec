@@ -6,6 +6,7 @@ Gem::Specification.new do |s|
   s.version     = Covet::VERSION
   s.summary     = 'Regression test selection tool based on coverage information'
   s.description = 'Uses git and ruby coverage information to determine which tests to run from your test suite'
+  s.homepage = "https://github.com/luke-gru/covet"
 
   s.required_ruby_version = '>= 1.9.1'
 

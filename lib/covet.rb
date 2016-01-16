@@ -142,10 +142,10 @@ module Covet
 
   # Returns the command line to run the tests given in `run_list`.
   # @return String
-  def self.cmdline_for_run_list(run_list)
+  def self.cmdline_for_run_list(run_list, options = {})
     Covet::TestRunners.const_get(
       @test_runner.to_s.capitalize
-    ).cmdline_for_run_list(run_list)
+    ).cmdline_for_run_list(run_list, options)
   end
 
   # Returns coverage information for before block ran, and after block ran

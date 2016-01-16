@@ -21,7 +21,7 @@ module Covet
 
     attr_accessor :name
     attr_accessor :description
-    attr_accessor :test_task # Rake::TestTask or Symbol
+    attr_accessor :test_task # Rake::TestTask or name (Symbol or String) of previously defined Rake::TestTask
     attr_accessor :covet_opts # Array of cmdline covet options
 
     def initialize(name = :covet_collect) # yields
