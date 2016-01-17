@@ -1,9 +1,9 @@
+require 'set'
+require 'rugged'
+
 module Covet
   module VCS
     module Git
-      require 'set'
-      require 'rugged'
-
       # Find lines in git-indexed files that were changed (added/deleted/modified)
       # in the codebase since `revision`.
       # @param [String|Symbol] revision, commit revision hash or special symbol

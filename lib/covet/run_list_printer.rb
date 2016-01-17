@@ -1,9 +1,9 @@
+require 'json'
+
 module Covet
   # Used to format the printed output of the run list, when printing instead
   # of executing the run list.
   class RunListPrinter
-    require 'json'
-
     def initialize(to_run, options = {})
       @to_run = to_run # @var Array
       @must_run_all_test_files = options[:must_run_all_test_files]
