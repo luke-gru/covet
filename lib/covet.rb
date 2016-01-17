@@ -13,7 +13,7 @@ else
 end
 require_relative 'covet/collection_filter'
 require_relative 'covet/collection_compressor'
-require_relative 'covet/line_changes_vcs'
+require_relative 'covet/vcs'
 require_relative 'covet/log_collection'
 require_relative 'covet/cli'
 
