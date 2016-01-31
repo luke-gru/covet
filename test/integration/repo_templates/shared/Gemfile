@@ -1,0 +1,5 @@
+source 'https://rubygems.org'
+
+gem 'covet', :path => ENV['COVET_PATH']
+gem 'rake'
+gem 'minitest'
