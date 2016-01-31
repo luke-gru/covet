@@ -9,7 +9,6 @@ end
 
 require 'covet'
 require_relative '../main' # This file must exist
-STDERR.puts RUBY_VERSION
 
 class RepoTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase
 end

@@ -98,9 +98,9 @@ class CovetIntegrationTest < defined?(Minitest::Test) ? Minitest::Test : Minites
           @current_template = template
           FileUtils.cp_r template_files(template), tmp
           FileUtils.cp_r shared_template_files, tmp
-          system('bundle install > /dev/null 2>&1') or raise "bundle install failed"
+          system('bundle install --quiet') or raise "bundle install failed"
           if commit
-            system('git init > /dev/null && git add --all && git commit -m "first commit" > /dev/null 2>&1') or raise "repo creation failed"
+            system('git init > /dev/null && git add --all && git commit -m "first commit" > /dev/null') or raise "repo creation failed"
           end
         end
         repo = Rugged::Repository.new(tmp)
