@@ -8,11 +8,14 @@ rescue LoadError
   require 'minitest/unit' # minitest 4
   require 'minitest/autorun'
 end
+require 'rugged'
+require 'tmpdir'
+require 'fileutils'
 
 Covet::CollectionFilter.whitelist_gem('covet')
 Covet.register_coverage_collection!
 
-class CovetTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase
+class CovetUnitTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase
 
   def setup
     Covet::BASE_COVERAGE.update({})
@@ -85,4 +88,81 @@ class CovetTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::Te
       end
     end
 
+end
+
+class CovetIntegrationTest < defined?(Minitest::Test) ? Minitest::Test : Minitest::Unit::TestCase
+  def with_new_repo(template: 'proj1', commit: true) # yields Rugged::Repository
+    Dir.mktmpdir do |tmp|
+      Dir.chdir(tmp) do
+        if template
+          @current_template = template
+          FileUtils.cp_r template_files(template), tmp
+          FileUtils.cp_r shared_template_files, tmp
+          system('bundle install > /dev/null 2>&1') or raise "bundle install failed"
+          if commit
+            system('git init > /dev/null && git add --all && git commit -m "first commit" > /dev/null 2>&1') or raise "repo creation failed"
+          end
+        end
+        repo = Rugged::Repository.new(tmp)
+        yield repo
+      end
+    end
+  end
+
+  def run_covet_collect!
+    assert_collected do
+      template_run(%Q(bundle exec covet -c "rake test"))
+    end
+  end
+
+  def template_run(cmd, expect_success: true, silence_output: true)
+    covet_path = File.expand_path('../../', __FILE__)
+    out, err = capture_subprocess_io do
+      system("COVET_PATH='#{Shellwords.escape(covet_path)}' COVET_DEBUG=0 #{cmd}")
+    end
+    if $?.exitstatus != 0 && expect_success
+      assert false, "command #{cmd} failed with status #{$?.exitstatus}"
+    end
+    unless silence_output
+      STDOUT.puts out
+      STDERR.puts err
+    end
+    [out, err]
+  end
+
+  def assert_collected # yields
+    File.unlink('run_log.json') if File.exist?('run_log.json')
+    File.unlink('run_log_index.json') if File.exist?('run_log_index.json')
+    yield
+    assert File.exist?('run_log.json'), "run_log.json should exist"
+    assert File.exist?('run_log_index.json'), "run_log_index.json should exist"
+  end
+
+  private
+
+    def template_files(tmpl)
+      Dir.glob(File.join(template_path(tmpl), tmpl, '**/*'))
+    end
+
+    def template_path(tmpl)
+      File.expand_path('../integration/repo_templates', __FILE__)
+    end
+
+    def template_file(tmpl, fname)
+      File.join(template_path(tmpl), fname)
+    end
+
+    def change_file!(fname, changes)
+      raise "file '#{fname}' doesn't exist" unless File.exist?(fname)
+      old_contents_ary = File.readlines(fname)
+      new_contents_ary = old_contents_ary.dup
+      changes.each do |lineno, line|
+        new_contents_ary[lineno - 1] = line
+      end
+      File.open(fname, 'w') { |f| f.write(new_contents_ary.join("\n")) }
+    end
+
+    def shared_template_files
+      template_files('shared')
+    end
 end

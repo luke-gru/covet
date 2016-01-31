@@ -1,7 +1,7 @@
 require_relative 'test_helper'
 require 'tempfile'
 
-class LogCollectionTest < CovetTest
+class LogCollectionTest < CovetUnitTest
   @@tempfile = Tempfile.new('test')
   @@tempfile.close
 

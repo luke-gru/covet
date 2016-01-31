@@ -1,6 +1,6 @@
 require_relative 'test_helper'
 
-class RunListTest < CovetTest
+class RunListTest < CovetUnitTest
   def test_empty_run_list_for_method
     before, after = coverage_before_and_after { }
     list = generate_run_list_for_method(before, after, :method_name => __method__)

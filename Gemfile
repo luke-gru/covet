@@ -4,7 +4,7 @@ gemspec
 group :test, :development do
   gem 'rspec'
   gem 'minitest'
-  if ENV['COVET_DEBUG']
+  if ENV['COVET_DEBUG'] == '1'
     if RUBY_VERSION.to_i < 2
       gem 'debugger'
     else

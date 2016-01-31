@@ -1,7 +1,7 @@
 require_relative 'test_helper'
 require 'tmpdir'
 
-class CoveragePeekResultTest < CovetTest
+class CoveragePeekResultTest < CovetUnitTest
   # Aaron's original test for `Coverage::peek_result` in
   # https://github.com/ruby/ruby/commit/a86eacf552c0f3a7862d6891cf174007d96f656a
   def test_coverage_peek_result

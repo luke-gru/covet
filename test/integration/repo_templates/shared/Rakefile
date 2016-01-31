@@ -1,0 +1,11 @@
+require 'rake/testtask'
+
+task :default => [:test]
+
+Rake::TestTask.new(:test) do |t|
+  t.test_files = FileList['test/**/repo_test_*.rb'].to_a
+  t.verbose = true
+  if t.respond_to?(:description=)
+    t.description = 'Run all tests'
+  end
+end

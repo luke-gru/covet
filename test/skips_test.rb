@@ -1,6 +1,6 @@
 require_relative 'test_helper'
 
-class SkipsTest < CovetTest
+class SkipsTest < CovetUnitTest
   def self.test_order
     :sorted
   end

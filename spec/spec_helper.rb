@@ -67,7 +67,6 @@ module CovetTestHelpers
         raise ArgumentError, "file already exists: #{fname}"
       end
     end
-
 end
 
 RSpec.configure do |c|

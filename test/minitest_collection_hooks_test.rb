@@ -1,6 +1,6 @@
 require_relative 'test_helper'
 
-class MinitestCollectionHooks < CovetTest
+class MinitestCollectionHooks < CovetUnitTest
   @@first_logs = []
 
   def self.test_order

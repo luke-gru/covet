@@ -18,7 +18,7 @@ require_relative 'covet/log_collection'
 require_relative 'covet/cli'
 
 # just for testing purposes
-if ENV['COVET_DEBUG']
+if ENV['COVET_DEBUG'] == '1'
   if RUBY_VERSION < '2.0'
     gem 'debugger'
     require 'debugger'
