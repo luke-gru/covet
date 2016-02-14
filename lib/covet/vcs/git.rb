@@ -32,8 +32,6 @@ module Covet
                 lines_to_run << [file, line.new_lineno]
               when :deletion
                 lines_to_run << [file, line.old_lineno]
-              when :context
-                lines_to_run << [file, line.new_lineno]
               end
             }
           }
@@ -44,22 +42,20 @@ module Covet
       # find git repository path at or below `Dir.pwd`
       # @return String|nil, absolute path of repository
       def self.repository_root
-        @repository_root ||= begin
-          dir = orig_dir = Dir.pwd
-          found = Dir.exist?('.git') && dir
-          while !found && dir && Dir.exist?(dir)
-            old_dir = Dir.pwd
-            Dir.chdir('..')
-            dir = Dir.pwd
-            return if old_dir == dir # at root directory
-            if dir && Dir.exist?('.git')
-              found = dir
-            end
+        dir = orig_dir = Dir.pwd
+        found = Dir.exist?('.git') && dir
+        while !found && dir && Dir.exist?(dir)
+          old_dir = Dir.pwd
+          Dir.chdir('..')
+          dir = Dir.pwd
+          return if old_dir == dir # at root directory
+          if dir && Dir.exist?('.git')
+            found = dir
           end
-          found || nil
-        ensure
-          Dir.chdir(orig_dir) if Dir.pwd != orig_dir
         end
+        found || nil
+      ensure
+        Dir.chdir(orig_dir) if Dir.pwd != orig_dir
       end
 
     end

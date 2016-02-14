@@ -29,7 +29,7 @@ module Covet
         when :json
           JSON.dump({'test_files' => [], 'meta' => {}})
         else
-          raise "invalid format"
+          raise "invalid run list format: '#{@print_format}'"
         end
       end
 
@@ -42,7 +42,7 @@ module Covet
         when :json
           JSON.dump({'test_files' => @to_run, 'meta' => { 'all_files' => true }})
         else
-          raise "invalid format"
+          raise "invalid run list format: '#{@print_format}'"
         end
       end
 
@@ -61,7 +61,7 @@ module Covet
         when :json
           JSON.dump({'test_files' => @to_run.map { |_file, desc, _| desc.split('#').first }.uniq, 'meta' => {}})
         else
-          raise "invalid format"
+          raise "invalid run list format: '#{@print_format}'"
         end
       end
   end

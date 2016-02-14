@@ -11,6 +11,7 @@ end
 require 'rugged'
 require 'tmpdir'
 require 'fileutils'
+require 'shellwords'
 
 Covet::CollectionFilter.whitelist_gem('covet')
 Covet.register_coverage_collection!
@@ -100,7 +101,11 @@ class CovetIntegrationTest < defined?(Minitest::Test) ? Minitest::Test : Minites
           FileUtils.cp_r shared_template_files, tmp
           system('bundle install --quiet') or raise "bundle install failed"
           if commit
+            # TODO: use rugged for this so it works on windows
             system('git init > /dev/null && git add --all && git commit -m "first commit" > /dev/null') or raise "repo creation failed"
+          else
+            # TODO: use rugged for this so it works on windows
+            system('git init > /dev/null') or raise "repo creation failed"
           end
         end
         repo = Rugged::Repository.new(tmp)
@@ -131,8 +136,7 @@ class CovetIntegrationTest < defined?(Minitest::Test) ? Minitest::Test : Minites
   end
 
   def assert_collected # yields
-    File.unlink('run_log.json') if File.exist?('run_log.json')
-    File.unlink('run_log_index.json') if File.exist?('run_log_index.json')
+    remove_run_logs!
     yield
     assert File.exist?('run_log.json'), "run_log.json should exist"
     assert File.exist?('run_log_index.json'), "run_log_index.json should exist"
@@ -152,17 +156,37 @@ class CovetIntegrationTest < defined?(Minitest::Test) ? Minitest::Test : Minites
       File.join(template_path(tmpl), fname)
     end
 
-    def change_file!(fname, changes)
+    def change_file!(fname, changes, keep_indents: true)
       raise "file '#{fname}' doesn't exist" unless File.exist?(fname)
-      old_contents_ary = File.readlines(fname)
-      new_contents_ary = old_contents_ary.dup
+      lines = File.readlines(fname)
       changes.each do |lineno, line|
-        new_contents_ary[lineno - 1] = line
+        old_line = lines[lineno - 1] # @var String|nil
+        if old_line && keep_indents && old_line =~ /\A(\s+)/
+          line = $1 + line.lstrip
+        end
+        line += "\n" unless line[-1] == "\n"
+        # If this is a new line we're inserting at some arbitrary line number,
+        # there might be `nil`s in between the last line and this new one.
+        lines[lineno - 1] = line
+        lines.compact! unless old_line
       end
-      File.open(fname, 'w') { |f| f.write(new_contents_ary.join("\n")) }
+      File.open(fname, 'w') { |f| f.write(lines.join) }
+    end
+
+    def rename_file!(fname, new_fname)
+      FileUtils.mv(fname, new_fname)
+    end
+
+    def remove_file!(fname)
+      FileUtils.rm(fname)
     end
 
     def shared_template_files
       template_files('shared')
+    end
+
+    def remove_run_logs!
+      File.unlink('run_log.json') if File.exist?('run_log.json')
+      File.unlink('run_log_index.json') if File.exist?('run_log_index.json')
     end
 end

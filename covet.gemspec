@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
     'ext/**/*.{c,rb}',
     'bin/*',
     'test/**/*.rb',
+    'test/integration/**/*',
     'spec/**/*.rb',
     'README.md',
     'Rakefile',
@@ -36,8 +37,9 @@ Gem::Specification.new do |s|
   ]
   s.test_files = Dir[
     'test/**/*.rb',
+    'test/integration/**/*',
     'spec/**/*.rb',
-  ]
+  ].uniq
   s.extensions = ['ext/covet_coverage/extconf.rb']
 
   s.add_dependency 'rugged' # TODO: remove from here and autodetect later when more VCSs are supported

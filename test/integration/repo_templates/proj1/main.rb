@@ -1,6 +1,6 @@
 class Main
   attr_reader :result
-  def initialize(initial: 0)
+  def initialize(initial = 0)
     @result = initial
   end
   def add(num)

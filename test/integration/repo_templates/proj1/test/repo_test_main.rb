@@ -2,7 +2,7 @@ require_relative 'test_helper'
 
 class MainTest < RepoTest
   def setup
-    @main = Main.new(initial: 0)
+    @main = Main.new(0)
   end
 
   def test_calc_add

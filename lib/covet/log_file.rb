@@ -19,8 +19,9 @@ module Covet
   class LogFile
 
     LoadError = Class.new(StandardError)
+    LoadIndexError = Class.new(StandardError)
 
-    attr_reader :name, :writes
+    attr_reader :name, :writes, :index_file
 
     def initialize(options = {})
       @mode = options[:mode] || 'w'
@@ -64,32 +65,39 @@ module Covet
       @index_file.finish!
     end
 
+    # Load entire (unbounded) structure into memory without using buffers.
     def load!
       JSON.load(File.read(@name))
+    rescue JSON::ParserError => e
+      raise LogFile::LoadError, e.message
     end
 
     # Yields each coverage buffer (Array) one a time from the run log.
     # @raises LogFile::LoadError
     def load_each_buf! # yields
+      unless block_given?
+        return to_enum(__method__)
+      end
       @index_file.reload!('r')
       reload!('r')
-      index = JSON.load(File.read(@index_file.name))
+      index = load_index!
       index.each do |(pos, bytes_to_read)|
         res = load_buf_from_file!(pos, bytes_to_read)
         yield res # @var Array
       end
     end
 
-    # @raises LogFile::LoadError
+    # @raises LogFile::LoadError, LogFileIndex::LoadError
     # @return Array
     def load_buf!(buf_idx)
       @index_file.reload!('r')
       reload!('r')
-      index = JSON.load(File.read(@index_file.name))
+      index = load_index!
       pos, bytes_to_read = index[buf_idx]
       load_buf_from_file!(pos, bytes_to_read)
     end
 
+    # Run statistics and meta-info is stored as the final buffer in the log file.
     # @raises LogFile::LoadError
     # @return Hash
     def load_run_stats!
@@ -116,7 +124,7 @@ module Covet
 
       def check_can_write!
         if @mode == 'r'
-          raise "For writing to the log file, you must construct it with a different :mode"
+          raise "For writing to the log file, you must construct it with a different :mode. Mode: '#{@mode}'"
         end
       end
 
@@ -131,6 +139,13 @@ module Covet
         JSON.load(buf)
       rescue JSON::ParserError => e
         raise LogFile::LoadError, e.message
+      end
+
+      # @return Array
+      def load_index!
+        JSON.load(File.read(@index_file.name))
+      rescue JSON::ParserError => e
+        raise LogFile::LoadIndexError, e.message
       end
 
   end
