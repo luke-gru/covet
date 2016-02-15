@@ -5,15 +5,13 @@ require 'rake/clean'
 require 'wwtd/tasks'
 
 desc 'Run unit and integration tests'
-task :default => [:unit_tests, :integration_tests]
+task :default => [:recompile, :unit_tests, :integration_tests]
+
+desc 'Run all tests'
+task :test => [:recompile, :minitest_unit_tests, :rspec_unit_tests, :integration_tests] # for `wwtd`, which runs `rake test` by default
 
 desc 'Run minitest and rspec unit tests'
 task :unit_tests => [:minitest_unit_tests, :rspec_unit_tests]
-
-desc 'run minitest unit tests'
-task :test => [:minitest_unit_tests] # for `wwtd`, which runs `rake test` by default
-
-task :travis => [:clobber, :compile, :wwtd, :rspec_unit_tests, :integration_tests] # run travis builds locally
 
 Rake::TestTask.new(:minitest_unit_tests) do |t|
   t.test_files = FileList['test/*_test.rb'].to_a
@@ -43,7 +41,7 @@ Rake::ExtensionTask.new('covet_coverage') do |ext| # rake compile
 end
 
 desc 'recompile internal coverage C extension'
-task :recompile => [:clobber, :compile, :default]
+task :recompile => [:clobber, :compile]
 
 # for rake:clobber
 CLOBBER.include(
