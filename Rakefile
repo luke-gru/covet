@@ -4,11 +4,10 @@ require 'rspec/core/rake_task'
 require 'rake/clean'
 require 'wwtd/tasks'
 
-desc 'Run unit and integration tests'
-task :default => [:recompile, :unit_tests, :integration_tests]
+task :default => [:test]
 
-desc 'Run all tests'
-task :test => [:recompile, :minitest_unit_tests, :rspec_unit_tests, :integration_tests] # for `wwtd`, which runs `rake test` by default
+desc 'Run unit and integration tests'
+task :test => [:recompile, :unit_tests, :integration_tests]
 
 desc 'Run minitest and rspec unit tests'
 task :unit_tests => [:minitest_unit_tests, :rspec_unit_tests]

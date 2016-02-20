@@ -8,4 +8,7 @@ gemfile:
   - gemfiles/minitest5-0-8.gemfile
   - gemfiles/minitest5-3-3.gemfile
   - gemfiles/minitest5-7-0.gemfile
-script: "bundle exec rake test"
+before_script:
+  - git config --global user.email "luke.gru@gmail.com" && git config --global user.name Luke
+script:
+  - bundle exec rake test
